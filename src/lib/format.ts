@@ -50,6 +50,30 @@ export function formatSignedInt(value: number, locale: Locale): string {
   );
 }
 
+export interface DurationDict {
+  year: string;
+  years: string;
+  month: string;
+  months: string;
+  joiner: string;
+}
+
+/**
+ * Render a month count as a human duration: "6 anos e 2 meses" / "2 years 2 months".
+ * Uses the absolute value (the caller renders the sign separately) and omits
+ * the months part when the remainder is zero ("2 anos"). Fractional inputs are
+ * rounded to the nearest whole month so `% 12` never leaks float noise into copy.
+ */
+export function formatYearsMonths(months: number, d: DurationDict): string {
+  const abs = Math.round(Math.abs(months));
+  const years = Math.floor(abs / 12);
+  const rem = abs % 12;
+  const yearPart = years > 0 ? `${years} ${years === 1 ? d.year : d.years}` : '';
+  const monthPart = rem > 0 ? `${rem} ${rem === 1 ? d.month : d.months}` : '';
+  if (yearPart && monthPart) return yearPart + d.joiner + monthPart;
+  return yearPart || monthPart;
+}
+
 /**
  * Parse user input per locale convention.
  * pt: comma is decimal; a dot followed by exactly 3 digits is grouping ("1.234"),

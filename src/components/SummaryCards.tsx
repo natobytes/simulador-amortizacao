@@ -1,7 +1,7 @@
 import type { Dict } from '../i18n';
 import type { InstallmentBreakdown, ScenarioResult } from '../lib/amortizacao';
 import type { Locale } from '../lib/format';
-import { formatEuro, formatInt, formatSignedEuro, formatSignedInt } from '../lib/format';
+import { formatEuro, formatInt, formatSignedEuro, formatSignedInt, formatYearsMonths } from '../lib/format';
 
 interface Props {
   result: ScenarioResult;
@@ -44,7 +44,21 @@ export default function SummaryCards({ result, dict, locale }: Props) {
                     {row.label}
                     {row.note && <small> {row.note}</small>}
                   </dt>
-                  <dd data-testid={`${col.key}-${row.key}`}>{col.value(result[col.key], row.key)}</dd>
+                  <dd data-testid={`${col.key}-${row.key}`}>
+                    {col.value(result[col.key], row.key)}
+                    {col.key === 'diff' &&
+                      row.key === 'remaining' &&
+                      Math.abs(result.diff.remaining) >= 12 && (
+                        // The separating space lives OUTSIDE the note: leading
+                        // whitespace inside an inline-block collapses away.
+                        <>
+                          {' '}
+                          <small className="duration-note">
+                            {`(${formatYearsMonths(result.diff.remaining, dict.cards.duration)})`}
+                          </small>
+                        </>
+                      )}
+                  </dd>
                 </div>
               ))}
             </dl>

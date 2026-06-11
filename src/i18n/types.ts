@@ -33,6 +33,7 @@ export interface Dict {
     installment: string;
     installmentNote: string;
     remaining: string;
+    duration: { year: string; years: string; month: string; months: string; joiner: string };
   };
   banner: {
     saves: string;

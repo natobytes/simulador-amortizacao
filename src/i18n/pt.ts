@@ -57,6 +57,7 @@ export const pt: Dict = {
     installment: 'Prestação',
     installmentNote: '(juros + capital)',
     remaining: 'Nº de Prestações em Falta',
+    duration: { year: 'ano', years: 'anos', month: 'mês', months: 'meses', joiner: ' e ' },
   },
   banner: {
     saves: 'Poupas {amount} em juros',
