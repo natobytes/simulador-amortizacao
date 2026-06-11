@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import { dicts } from '../i18n';
+
+const rawBase = import.meta.env.BASE_URL;
+const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+---
+
+<Base locale="pt" noindex>
+  <main class="not-found">
+    <h1>{dicts.pt.notFound.title} / {dicts.en.notFound.title}</h1>
+    <p>{dicts.pt.notFound.body}</p>
+    <p>{dicts.en.notFound.body}</p>
+    <p>
+      <a href={base}>{dicts.pt.notFound.back}</a> · <a href={`${base}en/`}>{dicts.en.notFound.back}</a>
+    </p>
+  </main>
+</Base>
