@@ -107,3 +107,39 @@ export function simulate(input: SimulationInput, strategy: Strategy): ScenarioRe
 
   return { current, updated, diff };
 }
+
+export type FieldKey = 'capital' | 'installments' | 'rate' | 'amortization' | 'commission';
+export type ErrorKey = 'required' | 'positive' | 'integer' | 'negative' | 'exceedsCapital';
+export type FieldErrors = Partial<Record<FieldKey, ErrorKey>>;
+
+export interface RawInput {
+  capital: number | null;
+  installments: number | null;
+  annualRatePct: number | null;
+  amortization: number | null;
+  commissionRatePct: number | null;
+}
+
+export function validate(raw: RawInput): FieldErrors {
+  const errors: FieldErrors = {};
+
+  if (raw.capital === null) errors.capital = 'required';
+  else if (raw.capital <= 0) errors.capital = 'positive';
+
+  if (raw.installments === null) errors.installments = 'required';
+  else if (raw.installments < 1) errors.installments = 'positive';
+  else if (!Number.isInteger(raw.installments)) errors.installments = 'integer';
+
+  if (raw.annualRatePct === null) errors.rate = 'required';
+  else if (raw.annualRatePct < 0) errors.rate = 'negative';
+
+  if (raw.amortization === null) errors.amortization = 'required';
+  else if (raw.amortization <= 0) errors.amortization = 'positive';
+  else if (raw.capital !== null && raw.capital > 0 && raw.amortization > raw.capital) {
+    errors.amortization = 'exceedsCapital';
+  }
+
+  if (raw.commissionRatePct !== null && raw.commissionRatePct < 0) errors.commission = 'negative';
+
+  return errors;
+}

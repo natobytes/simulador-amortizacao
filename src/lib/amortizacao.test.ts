@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput } from './amortizacao';
+import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, validate } from './amortizacao';
 
 describe('roundHalfEven (V9)', () => {
   it('rounds 2dp half-to-even', () => {
@@ -123,5 +123,38 @@ describe('simulate — Diminuir Prestação (reduceInstallment)', () => {
   it('V8 tiny residual (well-defined for this strategy)', () => {
     const r = simulate({ capital: 50000, installments: 12, annualRatePct: 3.0, amortization: 49900 }, 'reduceInstallment');
     expect(r.updated).toEqual({ interest: 0.25, principal: 8.22, installment: 8.47, remaining: 12 });
+  });
+});
+
+describe('validate', () => {
+  const ok = { capital: 150000, installments: 360, annualRatePct: 3.5, amortization: 10000, commissionRatePct: 0.5 };
+  it('accepts valid input', () => {
+    expect(validate(ok)).toEqual({});
+  });
+  it('requires all main fields', () => {
+    const e = validate({ capital: null, installments: null, annualRatePct: null, amortization: null, commissionRatePct: null });
+    expect(e).toEqual({ capital: 'required', installments: 'required', rate: 'required', amortization: 'required' });
+  });
+  it('rejects non-positive capital and amortization', () => {
+    expect(validate({ ...ok, capital: 0 }).capital).toBe('positive');
+    expect(validate({ ...ok, amortization: 0 }).amortization).toBe('positive');
+  });
+  it('rejects fractional or < 1 installments', () => {
+    expect(validate({ ...ok, installments: 0 }).installments).toBe('positive');
+    expect(validate({ ...ok, installments: 12.5 }).installments).toBe('integer');
+  });
+  it('rejects negative rate but accepts 0', () => {
+    expect(validate({ ...ok, annualRatePct: -1 }).rate).toBe('negative');
+    expect(validate({ ...ok, annualRatePct: 0 })).toEqual({});
+  });
+  it('amortization may equal capital (full payoff) but not exceed it', () => {
+    expect(validate({ ...ok, amortization: 150000 })).toEqual({});
+    expect(validate({ ...ok, amortization: 150001 }).amortization).toBe('exceedsCapital');
+    // V7 literal: A=50001 on B=50000 is a validation error
+    expect(validate({ ...ok, capital: 50000, amortization: 50001 }).amortization).toBe('exceedsCapital');
+  });
+  it('rejects negative commission, accepts null (treated as 0 upstream)', () => {
+    expect(validate({ ...ok, commissionRatePct: -0.5 }).commission).toBe('negative');
+    expect(validate({ ...ok, commissionRatePct: null })).toEqual({});
   });
 });
