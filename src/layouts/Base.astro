@@ -10,14 +10,18 @@ interface Props {
 const { locale, noindex = false } = Astro.props;
 const dict = dicts[locale];
 
-const SITE_ROOT = 'https://natobytes.github.io/simulador-amortizacao/';
-const urls = { pt: SITE_ROOT, en: `${SITE_ROOT}en/` } as const;
-const canonical = urls[locale];
-
 const rawBase = import.meta.env.BASE_URL;
 const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
 
+const SITE_ROOT = new URL(base, Astro.site).href;
+const urls = { pt: SITE_ROOT, en: `${SITE_ROOT}en/` } as const;
+const canonical = urls[locale];
+
 const htmlLang = locale === 'pt' ? 'pt-PT' : 'en';
+
+function safeJson(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
 
 const webAppLd = {
   '@context': 'https://schema.org',
@@ -69,10 +73,10 @@ const faqLd = {
     <meta property="og:description" content={dict.meta.description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={`${SITE_ROOT}og-image.png`} />
-    <meta property="og:locale" content={locale === 'pt' ? 'pt_PT' : 'en_US'} />
+    <meta property="og:locale" content={locale === 'pt' ? 'pt_PT' : 'en_GB'} />
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="application/ld+json" set:html={JSON.stringify(webAppLd)} />
-    <script type="application/ld+json" set:html={JSON.stringify(faqLd)} />
+    <script is:inline type="application/ld+json" set:html={safeJson(webAppLd)} />
+    <script is:inline type="application/ld+json" set:html={safeJson(faqLd)} />
   </head>
   <body>
     <nav class="lang-switch" aria-label={dict.lang.label}>
