@@ -28,6 +28,9 @@ export default function ScenarioPanel({ strategy, input, commissionRatePct, dict
   return (
     <article className="scenario" data-testid={`scenario-${strategy}`}>
       <header className="scenario-header">
+        <span className="scenario-index" aria-hidden="true">
+          {strategy === 'reduceTerm' ? '01' : '02'}
+        </span>
         <h2>{meta.title}</h2>
         <p>{meta.subtitle}</p>
       </header>

@@ -1,5 +1,4 @@
 import type { Dict } from '../i18n';
-import { tpl } from '../i18n';
 import type { SavingsSummary } from '../lib/amortizacao';
 import type { Locale } from '../lib/format';
 import { formatEuro } from '../lib/format';
@@ -13,10 +12,15 @@ interface Props {
 
 export default function SavingsBanner({ savings, fullPayoff, dict, locale }: Props) {
   const headline = savings.cost.total > 0 ? savings.netSavings : savings.interestSaved;
+  // Same string as tpl(dict.banner.saves, …), but with the amount wrapped so it
+  // can be styled as the hero number of the panel.
+  const [before, after] = dict.banner.saves.split('{amount}');
   return (
     <aside className="savings-banner" data-testid="savings-banner">
       <p className="savings-headline">
-        {tpl(dict.banner.saves, { amount: formatEuro(headline, locale) })}
+        {before}
+        <strong className="savings-amount">{formatEuro(headline, locale)}</strong>
+        {after}
       </p>
       {fullPayoff && <p className="savings-payoff">{dict.banner.fullPayoff}</p>}
       {savings.cost.total > 0 && (

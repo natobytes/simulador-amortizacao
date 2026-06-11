@@ -15,7 +15,7 @@ interface Props {
 
 const W = 640;
 const H = 320;
-const PAD = { top: 16, right: 16, bottom: 36, left: 64 };
+const PAD = { top: 16, right: 28, bottom: 36, left: 92 };
 
 function linePath(values: number[], xMax: number, yMax: number): string {
   const innerW = W - PAD.left - PAD.right;

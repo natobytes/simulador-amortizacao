@@ -41,6 +41,7 @@ export default function InputForm({ form, errors, dict, onChange }: Props) {
     <form className="input-form" onSubmit={(e) => e.preventDefault()}>
       <fieldset>
         <legend>{dict.form.legend}</legend>
+        <div className="form-grid">
         {fields.map((f) => {
           const error = errors[f.errorKey];
           return (
@@ -104,6 +105,7 @@ export default function InputForm({ form, errors, dict, onChange }: Props) {
             )}
           </div>
         )}
+        </div>
       </fieldset>
     </form>
   );

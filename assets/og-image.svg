@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d3a31"/>
+      <stop offset="1" stop-color="#142a23"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#f6f0e4" stroke-opacity="0.05" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Balance curves: dashed baseline vs steeper amortized scenario -->
+  <path d="M-20 120 C 350 200 800 400 1240 620" stroke="#b9e3c9" stroke-opacity="0.16" stroke-width="4" fill="none" stroke-dasharray="2 16" stroke-linecap="round"/>
+  <path d="M965 440 C 1055 505 1155 575 1245 655" stroke="#d96c43" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <circle cx="965" cy="440" r="10" fill="#f6f0e4"/>
+
+  <!-- Top accent rule -->
+  <rect x="0" y="0" width="1200" height="8" fill="#d96c43"/>
+
+  <!-- Mark -->
+  <g transform="translate(72,64)">
+    <rect width="56" height="56" rx="13" fill="#f6f0e4"/>
+    <path d="M10 13 C 24 18 38 28 48 45" stroke="#1d3a31" stroke-opacity="0.4" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="1 8"/>
+    <path d="M10 20 C 21 27 32 37 38 47" stroke="#b3441f" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Title -->
+  <text x="72" y="280" font-family="Georgia, 'Times New Roman', serif" font-size="84" font-weight="600" fill="#f6f0e4" letter-spacing="-1">Simulador de</text>
+  <text x="72" y="375" font-family="Georgia, 'Times New Roman', serif" font-size="84" font-weight="600" fill="#f6f0e4" letter-spacing="-1">Amortização <tspan fill="#b9e3c9">Antecipada</tspan></text>
+
+  <!-- Tagline -->
+  <text x="72" y="448" font-family="Georgia, 'Times New Roman', serif" font-size="32" font-style="italic" fill="#b9e3c9" fill-opacity="0.92">Quanto poupas em juros ao amortizar o crédito habitação?</text>
+
+  <!-- Footer chips -->
+  <g font-family="Georgia, 'Times New Roman', serif" font-size="24" fill="#f6f0e4">
+    <rect x="72" y="508" width="270" height="52" rx="26" fill="#f6f0e4" fill-opacity="0.1" stroke="#f6f0e4" stroke-opacity="0.35"/>
+    <text x="100" y="542">Diminuir Prazo</text>
+    <rect x="362" y="508" width="312" height="52" rx="26" fill="#f6f0e4" fill-opacity="0.1" stroke="#f6f0e4" stroke-opacity="0.35"/>
+    <text x="390" y="542">Diminuir Prestação</text>
+    <rect x="694" y="508" width="150" height="52" rx="26" fill="#d96c43"/>
+    <text x="722" y="542" fill="#142a23" font-weight="700">Grátis</text>
+  </g>
+</svg>

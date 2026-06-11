@@ -1,6 +1,8 @@
 ---
 import type { Locale } from '../lib/format';
 import { dicts } from '../i18n';
+import '../styles/global.css';
+import frauncesUrl from '../assets/fonts/fraunces-latin-wght-normal.woff2';
 
 interface Props {
   locale: Locale;
@@ -67,6 +69,7 @@ const faqLd = {
     <link rel="alternate" hreflang="en" href={urls.en} />
     <link rel="alternate" hreflang="x-default" href={urls.pt} />
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <link rel="preload" href={frauncesUrl} as="font" type="font/woff2" crossorigin />
     <link rel="sitemap" href={`${base}sitemap-index.xml`} />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={dict.meta.title} />
