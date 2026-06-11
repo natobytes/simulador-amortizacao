@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, validate } from './amortizacao';
+import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, validate, buildSchedule, buildSchedules, repaymentCost, computeSavings, monthlyRate as mr } from './amortizacao';
 
 describe('roundHalfEven (V9)', () => {
   it('rounds 2dp half-to-even', () => {
@@ -156,5 +156,70 @@ describe('validate', () => {
   it('rejects negative commission, accepts null (treated as 0 upstream)', () => {
     expect(validate({ ...ok, commissionRatePct: -0.5 }).commission).toBe('negative');
     expect(validate({ ...ok, commissionRatePct: null })).toEqual({});
+  });
+});
+
+describe('buildSchedule (Layer B, full precision)', () => {
+  it('baseline V1: n months, balance reaches 0, sums are consistent', () => {
+    const s = buildSchedule(150000, mr(3.5), 673.567032);
+    expect(s.months).toBe(360);
+    expect(s.rows[s.rows.length - 1]!.balance).toBeCloseTo(0, 6);
+    const sumPrincipal = s.rows.reduce((acc, r) => acc + r.principal, 0);
+    expect(sumPrincipal).toBeCloseTo(150000, 4);
+    expect(s.totalInterest).toBeCloseTo(92484.13, 0); // pmt*360 - 150000
+    expect(s.totalPaid).toBeCloseTo(150000 + s.totalInterest, 4);
+  });
+  it('zero-rate schedule has zero interest', () => {
+    const s = buildSchedule(120000, 0, 500);
+    expect(s.months).toBe(240);
+    expect(s.totalInterest).toBe(0);
+  });
+});
+
+describe('buildSchedules (per strategy)', () => {
+  const V1 = { capital: 150000, installments: 360, annualRatePct: 3.5, amortization: 10000 };
+  it('reduceTerm keeps the old payment and ends around month 320-321', () => {
+    const { baseline, scenario } = buildSchedules(V1, 'reduceTerm');
+    expect(baseline.months).toBe(360);
+    expect(scenario.months).toBeGreaterThanOrEqual(320);
+    expect(scenario.months).toBeLessThanOrEqual(321);
+    expect(scenario.rows[0]!.payment).toBeCloseTo(673.567032, 5);
+    expect(scenario.totalInterest).toBeLessThan(baseline.totalInterest);
+  });
+  it('reduceInstallment keeps the term with the lower payment', () => {
+    const { scenario } = buildSchedules(V1, 'reduceInstallment');
+    expect(scenario.months).toBe(360);
+    expect(scenario.rows[0]!.payment).toBeCloseTo(628.662563, 5);
+  });
+  it('full payoff yields an empty scenario schedule', () => {
+    const { scenario } = buildSchedules({ ...V1, amortization: 150000 }, 'reduceTerm');
+    expect(scenario.months).toBe(0);
+    expect(scenario.totalInterest).toBe(0);
+  });
+  it('reduceTerm saves more interest than reduceInstallment', () => {
+    const term = buildSchedules(V1, 'reduceTerm').scenario.totalInterest;
+    const inst = buildSchedules(V1, 'reduceInstallment').scenario.totalInterest;
+    expect(term).toBeLessThan(inst);
+  });
+});
+
+describe('repaymentCost', () => {
+  it('commission plus 4% stamp duty', () => {
+    expect(repaymentCost(10000, 0.5)).toEqual({ commission: 50, stampDuty: 2, total: 52 });
+    expect(repaymentCost(10000, 2)).toEqual({ commission: 200, stampDuty: 8, total: 208 });
+  });
+  it('no commission -> no stamp duty', () => {
+    expect(repaymentCost(10000, 0)).toEqual({ commission: 0, stampDuty: 0, total: 0 });
+  });
+});
+
+describe('computeSavings', () => {
+  const V1 = { capital: 150000, installments: 360, annualRatePct: 3.5, amortization: 10000 };
+  it('net savings = interest saved minus costs', () => {
+    const { baseline, scenario } = buildSchedules(V1, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, V1.amortization, 0.5);
+    expect(s.interestSaved).toBeGreaterThan(0);
+    expect(s.cost.total).toBe(52);
+    expect(s.netSavings).toBeCloseTo(s.interestSaved - 52, 2);
   });
 });

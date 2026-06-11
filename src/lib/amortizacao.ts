@@ -143,3 +143,102 @@ export function validate(raw: RawInput): FieldErrors {
 
   return errors;
 }
+
+// ---------------------------------------------------------------------------
+// Layer B — full-precision month-by-month schedule. Powers the savings banner,
+// the balance chart and the amortization table. Display layers round; the
+// schedule itself never does.
+// ---------------------------------------------------------------------------
+
+export interface ScheduleRow {
+  month: number;
+  interest: number;
+  principal: number;
+  payment: number;
+  balance: number;
+}
+
+export interface Schedule {
+  rows: ScheduleRow[];
+  totalInterest: number;
+  totalPaid: number;
+  months: number;
+}
+
+const MAX_MONTHS = 1200;
+const EMPTY_SCHEDULE: Schedule = { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
+
+export function buildSchedule(startBalance: number, i: number, payment: number): Schedule {
+  if (startBalance <= 0 || payment <= 0) return EMPTY_SCHEDULE;
+  const rows: ScheduleRow[] = [];
+  let balance = startBalance;
+  let totalInterest = 0;
+  let totalPaid = 0;
+  let month = 0;
+  while (balance > 0.005 && month < MAX_MONTHS) {
+    month += 1;
+    const interest = balance * i;
+    let principal = payment - interest;
+    let paid = payment;
+    if (principal >= balance - 0.005 || month === MAX_MONTHS) {
+      principal = balance; // final installment clears the residual exactly
+      paid = balance + interest;
+    }
+    balance -= principal;
+    totalInterest += interest;
+    totalPaid += paid;
+    rows.push({ month, interest, principal, payment: paid, balance: Math.max(0, balance) });
+  }
+  return { rows, totalInterest, totalPaid, months: rows.length };
+}
+
+export interface SchedulePair {
+  baseline: Schedule;
+  scenario: Schedule;
+}
+
+export function buildSchedules(input: SimulationInput, strategy: Strategy): SchedulePair {
+  const i = monthlyRate(input.annualRatePct);
+  const pmtOld = pmt(input.capital, i, input.installments);
+  const baseline = buildSchedule(input.capital, i, pmtOld);
+  const Bn = input.capital - input.amortization;
+  let scenario: Schedule;
+  if (Bn <= 0) {
+    scenario = EMPTY_SCHEDULE;
+  } else if (strategy === 'reduceTerm') {
+    scenario = buildSchedule(Bn, i, pmtOld);
+  } else {
+    scenario = buildSchedule(Bn, i, pmt(Bn, i, input.installments));
+  }
+  return { baseline, scenario };
+}
+
+export interface CostBreakdown {
+  commission: number;
+  stampDuty: number;
+  total: number;
+}
+
+/** Commission on the amount repaid + 4% stamp duty (verba 17.3.4) on the commission. */
+export function repaymentCost(amortization: number, commissionRatePct: number): CostBreakdown {
+  const commission = round2(amortization * (commissionRatePct / 100));
+  const stampDuty = commission > 0 ? round2(commission * 0.04) : 0;
+  return { commission, stampDuty, total: round2(commission + stampDuty) };
+}
+
+export interface SavingsSummary {
+  interestSaved: number;
+  cost: CostBreakdown;
+  netSavings: number;
+}
+
+export function computeSavings(
+  baseline: Schedule,
+  scenario: Schedule,
+  amortization: number,
+  commissionRatePct: number,
+): SavingsSummary {
+  const interestSaved = round2(baseline.totalInterest - scenario.totalInterest);
+  const cost = repaymentCost(amortization, commissionRatePct);
+  return { interestSaved, cost, netSavings: round2(interestSaved - cost.total) };
+}
