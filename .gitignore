@@ -3,3 +3,6 @@ dist/
 .astro/
 .DS_Store
 npm-debug.log*
+coverage/
+.env
+.vscode/
