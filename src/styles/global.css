@@ -362,6 +362,15 @@ main {
   vertical-align: 0.2em;
 }
 
+/* ---- Empty state (form incomplete: no scenarios to show yet) -------------- */
+.calculator-empty {
+  margin: 0;
+  padding: 3.5rem var(--page-pad);
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
 /* ---- Scenario panels ------------------------------------------------------ */
 .scenarios {
   display: grid;
