@@ -4,9 +4,12 @@ const INTL: Record<Locale, string> = { pt: 'pt-PT', en: 'en-IE' };
 
 /**
  * Some ICU versions emit narrow no-break space (U+202F) as the group/currency
- * separator. Normalize to NBSP so server-rendered HTML and client hydration
- * always produce byte-identical strings (React 19 hydration determinism).
- * U+202F (narrow NBSP) -> U+00A0 (NBSP).
+ * separator. Normalize Intl-emitted output to NBSP so server-rendered HTML and
+ * client hydration always produce byte-identical strings (React 19 hydration
+ * determinism). U+202F (narrow NBSP) -> U+00A0 (NBSP).
+ * Only ever applied to Intl output — never to the U+202F group separators we
+ * insert ourselves in groupThinSpaces() (those must stay U+202F), which is why
+ * render() normalizes per part BEFORE inserting group separators.
  */
 const nbsp = (s: string): string => s.replace(/\u202F/g, '\u00A0');
 
@@ -23,31 +26,59 @@ function getFormatter(locale: Locale, options: Intl.NumberFormatOptions): Intl.N
   return fmt;
 }
 
+/**
+ * Insert thin-space thousands separators into a bare digit run
+ * ("150000" -> "150 000"): user-preferred thin-space grouping per
+ * 3 digits, U+202F (NARROW NO-BREAK SPACE), inserted manually for hydration
+ * determinism (see render()).
+ */
+const groupThinSpaces = (digits: string): string => digits.replace(/\B(?=(\d{3})+$)/g, '\u202F');
+
+/**
+ * pt deliberately deviates from raw pt-PT Intl output: CLDR groups with a
+ * (narrow) NBSP and, because minimumGroupingDigits=2, omits grouping below
+ * 10 000 ("1234,56"). The site spec is thin-space (U+202F) grouping from
+ * 1 000 up ("1 234,56 €", "150 000,00 €"), so we disable Intl grouping and
+ * insert the separators ourselves via formatToParts — deterministic across
+ * ICU versions AND engines without Intl.NumberFormat v3 (Chrome <=105,
+ * Safari <=15.3, Firefox <=115), where the string option `useGrouping:
+ * 'always'` would coerce to plain `true` and silently fall back to min2
+ * grouping, breaking SSR/client byte-identity for 1 000–9 999. It keeps
+ * pt-PT currency placement (value, NBSP, €) and sign placement.
+ * nbsp() runs per part BEFORE the group separators are inserted, so the
+ * currency spacer normalizes to U+00A0 while the group separators stay U+202F
+ * (the integer part is bare digits, untouched by nbsp()).
+ * en renders through plain format() and is untouched.
+ */
+function render(value: number, locale: Locale, options: Intl.NumberFormatOptions): string {
+  if (locale === 'pt') {
+    const parts = getFormatter(locale, { ...options, useGrouping: false }).formatToParts(value);
+    return parts.map((p) => (p.type === 'integer' ? groupThinSpaces(p.value) : nbsp(p.value))).join('');
+  }
+  return nbsp(getFormatter(locale, options).format(value));
+}
+
 export function formatEuro(value: number, locale: Locale): string {
-  return nbsp(getFormatter(locale, { style: 'currency', currency: 'EUR' }).format(value));
+  return render(value, locale, { style: 'currency', currency: 'EUR' });
 }
 
 export function formatSignedEuro(value: number, locale: Locale): string {
-  return nbsp(
-    getFormatter(locale, {
-      style: 'currency',
-      currency: 'EUR',
-      signDisplay: 'exceptZero',
-    }).format(value),
-  );
+  return render(value, locale, {
+    style: 'currency',
+    currency: 'EUR',
+    signDisplay: 'exceptZero',
+  });
 }
 
 export function formatInt(value: number, locale: Locale): string {
-  return nbsp(getFormatter(locale, { maximumFractionDigits: 0 }).format(value));
+  return render(value, locale, { maximumFractionDigits: 0 });
 }
 
 export function formatSignedInt(value: number, locale: Locale): string {
-  return nbsp(
-    getFormatter(locale, {
-      maximumFractionDigits: 0,
-      signDisplay: 'exceptZero',
-    }).format(value),
-  );
+  return render(value, locale, {
+    maximumFractionDigits: 0,
+    signDisplay: 'exceptZero',
+  });
 }
 
 export interface DurationDict {
@@ -86,6 +117,11 @@ export function parseNumber(input: string, locale: Locale): number | null {
   let s = input.trim().replace(/[\s\u202F\u00A0€%]/g, '');
   if (s === '') return null;
   if (/[,.]{2,}/.test(s)) return null; // consecutive separators ("1,,2", "1..2") are garbage
+  // The signed formatters emit a leading sign ("-12.000", "+1.234,56 €");
+  // detach it so the digit-anchored separator heuristics below still apply,
+  // then re-attach for the final parse ('+' normalizes away).
+  const sign = s.startsWith('-') ? '-' : '';
+  s = s.replace(/^[-+]/, '');
   if (locale === 'pt') {
     if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) {
       s = s.replace(/\./g, '').replace(',', '.');
@@ -100,7 +136,7 @@ export function parseNumber(input: string, locale: Locale): number | null {
     }
   }
   if ((s.match(/\./g) ?? []).length > 1) return null;
-  if (!/^-?\d*\.?\d+$/.test(s)) return null;
-  const value = Number(s);
+  if (!/^\d*\.?\d+$/.test(s)) return null;
+  const value = Number(sign + s);
   return Number.isFinite(value) ? value : null;
 }
