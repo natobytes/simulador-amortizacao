@@ -3,7 +3,9 @@ import type { Dict } from '../i18n';
 import type { SimulationInput, Strategy } from '../lib/amortizacao';
 import { buildSchedules, computeSavings, simulate } from '../lib/amortizacao';
 import type { Locale } from '../lib/format';
+import BalanceChart from './BalanceChart';
 import SavingsBanner from './SavingsBanner';
+import ScheduleTable from './ScheduleTable';
 import SummaryCards from './SummaryCards';
 
 interface Props {
@@ -34,7 +36,15 @@ export default function ScenarioPanel({ strategy, input, commissionRatePct, dict
       <div className="scenario-results" aria-live="polite">
         <SavingsBanner savings={savings} fullPayoff={result.updated.remaining === 0} dict={dict} locale={locale} />
         <SummaryCards result={result} dict={dict} locale={locale} />
-        {/* Task 10: <BalanceChart …/> and <ScheduleTable …/> mount here */}
+        <BalanceChart
+          baseline={baseline}
+          scenario={scenario}
+          startBalance={input.capital}
+          amortization={input.amortization}
+          dict={dict}
+          locale={locale}
+        />
+        <ScheduleTable schedule={scenario} dict={dict} locale={locale} />
       </div>
     </article>
   );
