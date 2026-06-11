@@ -25,9 +25,12 @@ function safeJson(data: unknown): string {
   return JSON.stringify(data).replace(/</g, '\\u003c');
 }
 
+const ORG_ID = 'https://natobytes.com/#org';
+
 const webAppLd = {
   '@context': 'https://schema.org',
   '@type': 'WebApplication',
+  '@id': `${canonical}#app`,
   name: dict.meta.title,
   url: canonical,
   description: dict.meta.description,
@@ -41,6 +44,27 @@ const webAppLd = {
     dict.scenarios.reduceTerm.title,
     dict.scenarios.reduceInstallment.title,
     dict.banner.grossInterest,
+  ],
+  publisher: { '@id': ORG_ID },
+  author: { '@id': ORG_ID },
+  isPartOf: { '@id': 'https://natobytes.com/#website' },
+};
+
+const orgLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': ORG_ID,
+  name: 'NatoBytes',
+  url: 'https://natobytes.com/',
+  logo: { '@type': 'ImageObject', url: 'https://natobytes.com/assets/logo.png', width: 512, height: 512 },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'NatoBytes', item: 'https://natobytes.com/' },
+    { '@type': 'ListItem', position: 2, name: dict.meta.title, item: canonical },
   ],
 };
 
@@ -60,6 +84,8 @@ const faqLd = {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1d3a31" />
+    <meta name="author" content="NatoBytes — Renato Almeida" />
     <title>{dict.meta.title}</title>
     <meta name="description" content={dict.meta.description} />
     {noindex && <meta name="robots" content="noindex" />}
@@ -77,9 +103,20 @@ const faqLd = {
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={`${SITE_ROOT}og-image.png`} />
     <meta property="og:locale" content={locale === 'pt' ? 'pt_PT' : 'en_GB'} />
+    <meta property="og:site_name" content="NatoBytes" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={dict.meta.title} />
+    <meta property="og:locale:alternate" content={locale === 'pt' ? 'en_GB' : 'pt_PT'} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={dict.meta.title} />
+    <meta name="twitter:description" content={dict.meta.description} />
+    <meta name="twitter:image" content={`${SITE_ROOT}og-image.png`} />
+    <meta name="twitter:image:alt" content={dict.meta.title} />
     <script is:inline type="application/ld+json" set:html={safeJson(webAppLd)} />
     <script is:inline type="application/ld+json" set:html={safeJson(faqLd)} />
+    <script is:inline type="application/ld+json" set:html={safeJson(orgLd)} />
+    <script is:inline type="application/ld+json" set:html={safeJson(breadcrumbLd)} />
   </head>
   <body>
     <nav class="lang-switch" aria-label={dict.lang.label}>
@@ -90,6 +127,7 @@ const faqLd = {
     <footer class="site-footer">
       <p>{dict.footer.disclaimer}</p>
       <p>{dict.footer.rulesAsOf}</p>
+      <p>{dict.footer.byLine} <a href="https://natobytes.com/">NatoBytes</a></p>
     </footer>
   </body>
 </html>

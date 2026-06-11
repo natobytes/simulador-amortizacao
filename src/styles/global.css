@@ -916,6 +916,15 @@ main {
   font-weight: 600;
 }
 
+.site-footer a {
+  color: inherit;
+  text-decoration-line: underline;
+}
+
+.site-footer a:focus-visible {
+  outline-color: var(--terra-bright);
+}
+
 /* ---- 404 ---------------------------------------------------------------------- */
 .not-found {
   min-height: 60vh;

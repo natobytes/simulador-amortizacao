@@ -116,8 +116,9 @@ export const en: Dict = {
   },
   footer: {
     disclaimer:
-      'This simulation is for information only and is not financial advice. Figures assume a constant Euribor and may differ by cents from your bank’s values due to rounding and day-count conventions. Your credit agreement, the FINE and your bank’s price list always prevail.',
+      "This simulation is for information only and is not financial advice. Figures assume a constant Euribor and may differ by cents from your bank’s values due to rounding and day-count conventions. Your credit agreement, the FINE and your bank’s price list always prevail.",
     rulesAsOf: 'Fee rules current as of June 2026.',
+    byLine: 'A free tool by',
   },
   lang: { label: 'Language', pt: 'Português', en: 'English' },
   notFound: {

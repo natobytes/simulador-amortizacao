@@ -118,6 +118,7 @@ export const pt: Dict = {
     disclaimer:
       'Esta simulação é meramente informativa e não constitui aconselhamento financeiro. Os valores assumem Euribor constante e podem diferir em cêntimos dos valores do banco devido a arredondamentos e convenções de contagem de dias. Prevalecem sempre o contrato de crédito, a FINE e o preçário do banco.',
     rulesAsOf: 'Regras de comissão em vigor em junho de 2026.',
+    byLine: 'Uma ferramenta gratuita da',
   },
   lang: { label: 'Idioma', pt: 'Português', en: 'English' },
   notFound: {

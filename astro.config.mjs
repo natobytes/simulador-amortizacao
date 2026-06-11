@@ -13,5 +13,11 @@ export default defineConfig({
   },
   // sitemap() intentionally has NO i18n option: the HTML <link> hreflang tags in
   // Base.astro are the single source of hreflang truth (spec §6). Do not "fix" this.
-  integrations: [react(), sitemap()],
+  integrations: [
+    react(),
+    sitemap({
+      // Bump when calculator rules or page copy change (matches footer 'rulesAsOf').
+      lastmod: new Date('2026-06-11'),
+    }),
+  ],
 });

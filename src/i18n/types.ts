@@ -44,7 +44,7 @@ export interface Dict {
   chart: { title: string; baseline: string; scenario: string; years: string };
   table: { show: string; hide: string; month: string; interest: string; principal: string; payment: string; balance: string; total: string };
   faq: { title: string; items: FaqItem[] };
-  footer: { disclaimer: string; rulesAsOf: string };
+  footer: { disclaimer: string; rulesAsOf: string; byLine: string };
   lang: { label: string; pt: string; en: string };
   notFound: { title: string; body: string; back: string };
 }
