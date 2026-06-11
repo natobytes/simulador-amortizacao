@@ -4,22 +4,22 @@ export const pt: Dict = {
   meta: {
     title: 'Simulador de Amortização Antecipada – Crédito Habitação',
     description:
-      'Calcule quanto poupa em juros ao amortizar o crédito habitação. Compare reduzir prestação ou prazo, com comissões de reembolso antecipado incluídas. Grátis.',
+      'Calcula quanto poupas em juros ao amortizar o crédito habitação. Compara reduzir prestação ou prazo, com comissões de reembolso antecipado incluídas. Grátis.',
   },
   hero: {
     h1: 'Simulador de Amortização Antecipada do Crédito Habitação',
     tagline:
-      'Descubra quanto poupa em juros ao amortizar antecipadamente — e compare as duas opções: reduzir o prazo ou reduzir a prestação.',
+      'Descobre quanto poupas em juros ao amortizar antecipadamente — e compara as duas opções: reduzir o prazo ou reduzir a prestação.',
   },
   form: {
-    legend: 'Dados do seu crédito',
+    legend: 'Dados do teu crédito',
     capital: 'Capital em Dívida',
     installments: 'Nº de Prestações em Falta',
     rate: 'Taxa de Juro (Spread + Euribor)',
     amortization: 'Valor a Amortizar',
     commission: 'Comissão de reembolso antecipado',
     commissionHelp:
-      'Máximo legal: 0,5% em taxa variável, 2% em taxa fixa, sobre o capital reembolsado. Acresce Imposto do Selo de 4% sobre a comissão. O seu contrato pode prever um valor inferior.',
+      'Máximo legal: 0,5% em taxa variável, 2% em taxa fixa, sobre o capital reembolsado. Acresce Imposto do Selo de 4% sobre a comissão. O teu contrato pode prever um valor inferior.',
     commissionOptions: {
       none: 'Isento (0%)',
       variable: 'Taxa variável (0,5%)',
@@ -46,7 +46,7 @@ export const pt: Dict = {
     },
   },
   cards: {
-    summary: 'Sumário',
+    summary: 'Resumo',
     caption: 'Valores da próxima prestação mensal.',
     current: 'Valores Atuais',
     updated: 'Novos Valores',
@@ -86,15 +86,15 @@ export const pt: Dict = {
     items: [
       {
         q: 'Vale a pena amortizar o crédito habitação?',
-        a: 'Em regra, amortizar compensa quando a taxa de juro do crédito é superior ao retorno líquido que conseguiria com esse dinheiro (depósitos, certificados de aforro, investimentos). Antes de amortizar, garanta um fundo de emergência. Este simulador mostra exatamente quanto pouparia em juros em cada opção.',
+        a: 'Em regra, amortizar compensa quando a taxa de juro do crédito é superior ao retorno líquido que conseguirias com esse dinheiro (depósitos, certificados de aforro, investimentos). Antes de amortizar, garante um fundo de emergência. Este simulador mostra exatamente quanto poupas em juros em cada opção.',
       },
       {
         q: 'Devo reduzir o prazo ou a prestação?',
-        a: 'Reduzir o prazo poupa mais juros: continua a pagar a mesma prestação, mas durante menos tempo. Reduzir a prestação dá folga imediata no orçamento mensal, mantendo o prazo. Compare os dois cenários acima — a poupança em juros é normalmente muito superior na redução de prazo.',
+        a: 'Reduzir o prazo poupa mais juros: continuas a pagar a mesma prestação, mas durante menos tempo. Reduzir a prestação dá folga imediata no orçamento mensal, mantendo o prazo. Compara os dois cenários acima — a poupança em juros é normalmente muito superior na redução de prazo.',
       },
       {
         q: 'Quanto custa amortizar antecipadamente em 2026?',
-        a: 'Desde 1 de janeiro de 2026, os bancos podem cobrar a comissão de reembolso antecipado: até 0,5% do capital reembolsado em contratos de taxa variável e até 2% em período de taxa fixa, acrescida de Imposto do Selo de 4% sobre a comissão. A isenção temporária para créditos a taxa variável (habitação própria permanente) terminou a 31 de dezembro de 2025. O seu contrato pode prever uma comissão inferior — consulte o preçário do banco.',
+        a: 'Desde 1 de janeiro de 2026, os bancos podem cobrar a comissão de reembolso antecipado: até 0,5% do capital reembolsado em contratos de taxa variável e até 2% em período de taxa fixa, acrescida de Imposto do Selo de 4% sobre a comissão. A isenção temporária para créditos a taxa variável (habitação própria permanente) terminou a 31 de dezembro de 2025. O teu contrato pode prever uma comissão inferior — consulta o preçário do banco.',
       },
       {
         q: 'Preciso de avisar o banco com antecedência?',
@@ -110,19 +110,19 @@ export const pt: Dict = {
       },
       {
         q: 'Os meus dados são guardados?',
-        a: 'Não. Todos os cálculos são feitos no seu navegador. Nenhum dado é enviado para servidores, não usamos cookies nem ferramentas de análise.',
+        a: 'Não. Todos os cálculos são feitos no teu navegador. Nenhum dado é enviado para servidores, não usamos cookies nem ferramentas de análise.',
       },
     ],
   },
   footer: {
     disclaimer:
       'Esta simulação é meramente informativa e não constitui aconselhamento financeiro. Os valores assumem Euribor constante e podem diferir em cêntimos dos valores do banco devido a arredondamentos e convenções de contagem de dias. Prevalecem sempre o contrato de crédito, a FINE e o preçário do banco.',
-    rulesAsOf: 'Regras de comissões em vigor à data de junho de 2026.',
+    rulesAsOf: 'Regras de comissão em vigor em junho de 2026.',
   },
   lang: { label: 'Idioma', pt: 'Português', en: 'English' },
   notFound: {
     title: 'Página não encontrada',
-    body: 'A página que procura não existe.',
+    body: 'A página que procuras não existe.',
     back: 'Voltar ao simulador',
   },
 };

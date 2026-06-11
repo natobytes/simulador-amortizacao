@@ -13,4 +13,13 @@ describe('i18n', () => {
   it('tpl substitutes placeholders', () => {
     expect(tpl('Poupas {amount} em juros', { amount: '100 €' })).toBe('Poupas 100 € em juros');
   });
+  it('tpl leaves unknown placeholders intact', () => {
+    expect(tpl('Poupas {amount} em {unit}', { amount: '100 €' })).toBe('Poupas 100 € em {unit}');
+  });
+  it('no empty strings in pt or en dictionaries', () => {
+    const allStrings = (obj: unknown): string[] =>
+      typeof obj === 'string' ? [obj] : Object.values(obj as object).flatMap(allStrings);
+    expect(allStrings(dicts.pt).every((s) => s.length > 0)).toBe(true);
+    expect(allStrings(dicts.en).every((s) => s.length > 0)).toBe(true);
+  });
 });
