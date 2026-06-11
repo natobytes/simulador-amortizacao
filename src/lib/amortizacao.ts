@@ -234,6 +234,10 @@ export interface SavingsSummary {
   interestSaved: number;
   cost: CostBreakdown;
   netSavings: number;
+  /** Lifetime total without amortizing: round2(baseline.totalPaid). */
+  totalBefore: number;
+  /** Lifetime total with the repayment: scenario payments + lump sum + costs. */
+  totalAfter: number;
 }
 
 export function computeSavings(
@@ -244,5 +248,9 @@ export function computeSavings(
 ): SavingsSummary {
   const interestSaved = round2(baseline.totalInterest - scenario.totalInterest);
   const cost = repaymentCost(amortization, commissionRatePct);
-  return { interestSaved, cost, netSavings: round2(interestSaved - cost.total) };
+  // Both totals fully repay the capital, so totalBefore − totalAfter ≈ netSavings
+  // (within a cent or two of independent-rounding artifacts, which are correct).
+  const totalBefore = round2(baseline.totalPaid);
+  const totalAfter = round2(scenario.totalPaid + amortization + cost.total);
+  return { interestSaved, cost, netSavings: round2(interestSaved - cost.total), totalBefore, totalAfter };
 }

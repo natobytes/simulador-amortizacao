@@ -64,6 +64,9 @@ export const pt: Dict = {
     commission: 'Comissão',
     stampDuty: 'Imposto do Selo (4%)',
     net: 'Poupança líquida',
+    totalBefore: 'Total a pagar sem amortizar',
+    totalAfter: 'Total a pagar com a amortização',
+    totalAfterNote: 'Inclui o valor amortizado e eventuais custos do reembolso antecipado.',
   },
   chart: {
     title: 'Capital em dívida ao longo do tempo',

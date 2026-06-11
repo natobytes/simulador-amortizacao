@@ -64,6 +64,9 @@ export const en: Dict = {
     commission: 'Early repayment fee',
     stampDuty: 'Stamp duty (4%)',
     net: 'Net savings',
+    totalBefore: 'Total you’ll pay without repaying early',
+    totalAfter: 'Total you’ll pay with this repayment',
+    totalAfterNote: 'Includes the amount repaid and any early repayment costs.',
   },
   chart: {
     title: 'Outstanding balance over time',
