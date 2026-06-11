@@ -56,7 +56,7 @@ export default function InputForm({ form, errors, dict, onChange }: Props) {
                   value={form[f.key]}
                   aria-invalid={error ? true : undefined}
                   aria-describedby={error ? `${f.key}-error` : undefined}
-                  onChange={(e) => set({ [f.key]: e.target.value } as Partial<FormState>)}
+                  onChange={(e) => onChange({ ...form, [f.key]: e.target.value })}
                 />
                 {f.suffix && <span className="suffix" aria-hidden="true">{f.suffix}</span>}
               </div>
@@ -94,12 +94,13 @@ export default function InputForm({ form, errors, dict, onChange }: Props) {
                 inputMode="decimal"
                 value={form.customCommission}
                 aria-invalid={errors.commission ? true : undefined}
+                aria-describedby={errors.commission ? 'customCommission-error' : undefined}
                 onChange={(e) => set({ customCommission: e.target.value })}
               />
               <span className="suffix" aria-hidden="true">%</span>
             </div>
             {errors.commission && (
-              <p className="field-error" role="alert">{dict.form.errors[errors.commission]}</p>
+              <p className="field-error" id="customCommission-error" role="alert">{dict.form.errors[errors.commission]}</p>
             )}
           </div>
         )}
