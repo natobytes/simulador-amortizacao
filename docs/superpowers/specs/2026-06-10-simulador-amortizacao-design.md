@@ -166,7 +166,8 @@ term must fail V1 (321) and V3 (329).
   above-the-fold and always needed.
 - `astro.config.mjs`: `site: 'https://natobytes.github.io'`, `base: '/simulador-amortizacao'`,
   `i18n: { defaultLocale: 'pt', locales: ['pt', 'en'], routing: { prefixDefaultLocale: false } }`,
-  integrations: react, sitemap (with i18n alternates).
+  integrations: react, sitemap (plain — no i18n option; HTML hreflang link tags are the
+  single source of truth, see §6).
 
 ### File layout
 
@@ -219,7 +220,8 @@ the React bundle contains no i18n routing logic.
 5. **Footer:** disclaimer — estimates only; assumes constant Euribor; bank rounding and
    day-count may differ by cents; contract/FINE prevails; commission rules as of June 2026.
 
-Number formatting: `Intl.NumberFormat('pt-PT', …)` → `1 234,56 €`; `en-IE` style → `€1,234.56`.
+Number formatting: `Intl.NumberFormat('pt-PT', …)` → `150 000,00 €` (note: pt-PT omits
+the grouping separator below 10 000, e.g. `1055,68 €`); `en-IE` style → `€1,234.56`.
 
 **Visual design:** original, produced with the frontend-design skill during implementation.
 Distinctive, finance-trustworthy, accessible (labels, aria-live on results, keyboard
