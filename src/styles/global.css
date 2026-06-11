@@ -635,6 +635,16 @@ main {
   color: var(--ink);
 }
 
+/* Years+months annotation next to the months difference; inline-block so the
+   dd keeps its bottom-anchored baseline and the note wraps below the number
+   as a unit when space is tight, instead of breaking mid-phrase */
+.summary-row dd .duration-note {
+  display: inline-block;
+  font-size: 0.78em;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
 /* Values share a baseline across columns: anchor each dd to the bottom of
    its row box regardless of label height (rows share tracks via subgrid) */
 @media (min-width: 480px) {
@@ -686,6 +696,12 @@ main {
 
   .summary-row dt {
     font-size: 0.8rem;
+  }
+
+  /* dd sits on the right here; keep a wrapped duration-note right-aligned
+     under the number instead of dangling left */
+  .summary-row dd {
+    text-align: right;
   }
 }
 

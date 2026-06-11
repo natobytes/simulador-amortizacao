@@ -57,6 +57,7 @@ export const en: Dict = {
     installment: 'Installment',
     installmentNote: '(interest + principal)',
     remaining: 'Remaining Installments',
+    duration: { year: 'year', years: 'years', month: 'month', months: 'months', joiner: ' ' },
   },
   banner: {
     saves: 'You save {amount} in interest',

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { formatEuro, formatSignedEuro, formatInt, formatSignedInt, parseNumber } from './format';
+import { formatEuro, formatSignedEuro, formatInt, formatSignedInt, formatYearsMonths, parseNumber } from './format';
+import { dicts } from '../i18n';
 
 // Intl grouping/space characters vary (NBSP vs narrow NBSP); normalize for assertions.
 const norm = (s: string) => s.replace(/[\u202F\u00A0]/g, ' ');
@@ -30,6 +31,35 @@ describe('formatInt', () => {
   it('formats whole numbers', () => {
     expect(formatInt(360, 'pt')).toBe('360');
     expect(norm(formatInt(12000, 'pt'))).toBe('12 000');
+  });
+});
+
+describe('formatYearsMonths', () => {
+  const pt = { year: 'ano', years: 'anos', month: 'mês', months: 'meses', joiner: ' e ' };
+  const en = { year: 'year', years: 'years', month: 'month', months: 'months', joiner: ' ' };
+  it('pt: pluralizes and omits zero remainders', () => {
+    expect(formatYearsMonths(12, pt)).toBe('1 ano');
+    expect(formatYearsMonths(24, pt)).toBe('2 anos');
+    expect(formatYearsMonths(26, pt)).toBe('2 anos e 2 meses');
+    expect(formatYearsMonths(13, pt)).toBe('1 ano e 1 mês');
+  });
+  it('uses the absolute value of negative inputs', () => {
+    expect(formatYearsMonths(-74, pt)).toBe('6 anos e 2 meses');
+    expect(formatYearsMonths(-24, en)).toBe('2 years');
+  });
+  it('en: space joiner, no "and"', () => {
+    expect(formatYearsMonths(12, en)).toBe('1 year');
+    expect(formatYearsMonths(26, en)).toBe('2 years 2 months');
+    expect(formatYearsMonths(13, en)).toBe('1 year 1 month');
+  });
+  it('real dictionaries: joiner whitespace is load-bearing', () => {
+    // Pins dicts.*.cards.duration itself — the inline copies above would stay
+    // green if a cleanup trimmed pt's ' e ' to 'e' ("6 anos e2 meses").
+    expect(formatYearsMonths(74, dicts.pt.cards.duration)).toBe('6 anos e 2 meses');
+    expect(formatYearsMonths(26, dicts.en.cards.duration)).toBe('2 years 2 months');
+  });
+  it('rounds fractional months instead of leaking float noise', () => {
+    expect(formatYearsMonths(13.7, pt)).toBe('1 ano e 2 meses');
   });
 });
 
