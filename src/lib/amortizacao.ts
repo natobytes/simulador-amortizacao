@@ -110,7 +110,7 @@ export function simulate(input: SimulationInput, strategy: Strategy): ScenarioRe
 }
 
 export type FieldKey = 'capital' | 'installments' | 'rate' | 'amortization' | 'commission';
-export type ErrorKey = 'required' | 'positive' | 'integer' | 'negative' | 'exceedsCapital';
+export type ErrorKey = 'required' | 'positive' | 'integer' | 'negative' | 'exceedsCapital' | 'invalid';
 export type FieldErrors = Partial<Record<FieldKey, ErrorKey>>;
 
 export interface RawInput {

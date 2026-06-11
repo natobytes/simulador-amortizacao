@@ -33,6 +33,7 @@ export const en: Dict = {
       integer: 'Must be a whole number',
       negative: 'Cannot be negative',
       exceedsCapital: 'Cannot exceed the outstanding capital',
+      invalid: 'Invalid value',
     },
   },
   scenarios: {
@@ -46,7 +47,6 @@ export const en: Dict = {
     },
   },
   cards: {
-    summary: 'Summary',
     caption: 'Breakdown of the next monthly installment.',
     current: 'Current Values',
     updated: 'New Values',

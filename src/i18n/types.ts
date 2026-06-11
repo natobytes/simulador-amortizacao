@@ -16,14 +16,13 @@ export interface Dict {
     commissionHelp: string;
     commissionOptions: { none: string; variable: string; fixed: string; custom: string };
     customRate: string;
-    errors: Record<'required' | 'positive' | 'integer' | 'negative' | 'exceedsCapital', string>;
+    errors: Record<'required' | 'positive' | 'integer' | 'negative' | 'exceedsCapital' | 'invalid', string>;
   };
   scenarios: {
     reduceTerm: { title: string; subtitle: string };
     reduceInstallment: { title: string; subtitle: string };
   };
   cards: {
-    summary: string;
     caption: string;
     current: string;
     updated: string;

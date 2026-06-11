@@ -33,6 +33,7 @@ export const pt: Dict = {
       integer: 'Tem de ser um número inteiro',
       negative: 'Não pode ser negativo',
       exceedsCapital: 'Não pode ser superior ao capital em dívida',
+      invalid: 'Valor inválido',
     },
   },
   scenarios: {
@@ -46,7 +47,6 @@ export const pt: Dict = {
     },
   },
   cards: {
-    summary: 'Resumo',
     caption: 'Valores da próxima prestação mensal.',
     current: 'Valores Atuais',
     updated: 'Novos Valores',

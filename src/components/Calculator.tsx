@@ -46,6 +46,9 @@ function parseForm(form: FormState, locale: Locale): Parsed {
   };
 
   const errors = validate(raw);
+  if (form.commissionPreset === 'custom' && form.customCommission.trim() !== '' && commissionRatePct === null) {
+    errors.commission = 'invalid';
+  }
   const valid =
     Object.keys(errors).length === 0 &&
     raw.capital !== null &&

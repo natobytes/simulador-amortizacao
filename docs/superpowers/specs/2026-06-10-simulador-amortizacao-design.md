@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-10
 **Repo:** `natobytes/simulador-amortizacao` (public)
-**Live URL:** `https://natobytes.github.io/simulador-amortizacao/`
+**Live URL:** `https://natobytes.com/simulador-amortizacao/` (the natobytes org serves GitHub Pages under its custom domain; the github.io URL 301-redirects)
 
 ## 1. Goal
 
@@ -239,7 +239,9 @@ navigable, WCAG AA contrast). Not a copy of Twinkloo's look.
   "overpayment" and "payoff" wording in body/FAQ to catch UK/US phrasing.
 - **hreflang** on both pages (absolute URLs, trailing slashes, reciprocal + self):
   `pt-PT` → root, `pt` → root, `en` → `/en/`, `x-default` → root. Self-referencing
-  canonicals; hreflang URLs must equal canonicals exactly.
+  canonicals; hreflang URLs must equal canonicals exactly. (URLs moved to
+  https://natobytes.com/... at deploy time — the org's custom domain; config `site`
+  updated accordingly)
 - **JSON-LD:** `WebApplication` (`applicationCategory: "FinanceApplication"`,
   `operatingSystem: "Any"`, `offers: {price: 0, priceCurrency: "EUR"}`,
   `isAccessibleForFree: true`, `inLanguage` per page) + lightweight `FAQPage` (no rich
