@@ -38,14 +38,18 @@ export default function BalanceChart({ baseline, scenario, startBalance, amortiz
 
   // Year grid lines every 60 months.
   const yearTicks: number[] = [];
-  for (let m = 60; m <= xMax; m += 60) yearTicks.push(m);
+  if (xMax < 60) {
+    if (xMax > 0) yearTicks.push(xMax);
+  } else {
+    for (let m = 60; m <= xMax; m += 60) yearTicks.push(m);
+  }
 
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
 
   return (
     <figure className="balance-chart">
-      <figcaption>{dict.chart.title}</figcaption>
+      <figcaption aria-hidden="true">{dict.chart.title}</figcaption>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={titleId} className="balance-chart-svg">
         <title id={titleId}>
           {dict.chart.title}: {dict.chart.baseline} vs {dict.chart.scenario}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { Dict } from '../i18n';
 import type { Schedule } from '../lib/amortizacao';
 import type { Locale } from '../lib/format';
@@ -12,6 +12,7 @@ interface Props {
 
 export default function ScheduleTable({ schedule, dict, locale }: Props) {
   const [open, setOpen] = useState(false);
+  const tableId = useId();
   if (schedule.months === 0) return null;
   return (
     <section className="schedule">
@@ -19,12 +20,13 @@ export default function ScheduleTable({ schedule, dict, locale }: Props) {
         type="button"
         className="schedule-toggle"
         aria-expanded={open}
+        aria-controls={tableId}
         onClick={() => setOpen((o) => !o)}
       >
         {open ? dict.table.hide : dict.table.show}
       </button>
       {open && (
-        <div className="schedule-scroll">
+        <div className="schedule-scroll" id={tableId}>
           <table className="schedule-table">
             <thead>
               <tr>
