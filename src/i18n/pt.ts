@@ -115,7 +115,7 @@ export const pt: Dict = {
       },
       {
         q: 'Os meus dados são guardados?',
-        a: 'Os cálculos são todos feitos no teu navegador e os valores que escreves nunca são enviados para lado nenhum — ficam guardados apenas no teu dispositivo, para ficarem já preenchidos na próxima visita. Não usamos cookies nem ferramentas de análise.',
+        a: 'Os cálculos são todos feitos no teu navegador e os valores que escreves nunca são enviados para lado nenhum — ficam guardados apenas no teu dispositivo, para ficarem já preenchidos na próxima visita. O site usa o Google Analytics (que define cookies próprios) só para medirmos visitas e utilização de forma agregada.',
       },
     ],
   },
