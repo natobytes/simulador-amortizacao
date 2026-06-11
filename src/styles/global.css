@@ -27,7 +27,7 @@
   --ink-faint: #8a958f;
   --cream: #f6f0e4;
   --mint: #b9e3c9;
-  --mint-soft: #7fb99a;
+  --mint-soft: #5f9f80; /* ≥3:1 on white for the chart baseline stroke */
 
   /* Accent */
   --terra: #b3441f;
@@ -167,6 +167,13 @@ a:hover {
   outline-color: var(--terra-bright);
 }
 
+/* ~44px touch targets where a finger is the pointer */
+@media (max-width: 768px), (pointer: coarse) {
+  .lang-switch a {
+    padding-block: 0.75rem;
+  }
+}
+
 /* ---- Hero (full-bleed pine band) ----------------------------------------- */
 .hero {
   position: relative;
@@ -187,9 +194,11 @@ a:hover {
   pointer-events: none;
 }
 
-.hero > * {
+/* One shared content edge for hero children, aligned with main's content box
+   (main is --page-max wide including --page-pad padding on each side) */
+.hero-inner {
   position: relative;
-  max-width: var(--page-max);
+  max-width: calc(var(--page-max) - 2 * var(--page-pad));
   margin-inline: auto;
 }
 
@@ -355,14 +364,16 @@ main {
 /* ---- Scenario panels ------------------------------------------------------ */
 .scenarios {
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0, …) lets the wide schedule table shrink below min-content so
+     .schedule-scroll scrolls internally instead of blowing out the column */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.75rem;
   margin-top: 2.5rem;
 }
 
 @media (min-width: 1024px) {
   .scenarios {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
   }
 }
@@ -409,6 +420,7 @@ main {
 .scenario-results {
   padding: clamp(1.1rem, 2.5vw, 1.75rem);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
 }
 
@@ -509,11 +521,28 @@ main {
 
 @media (min-width: 480px) {
   .summary-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0;
     border: 1px solid var(--hairline);
     border-radius: var(--radius);
     overflow: hidden;
+  }
+
+  /* Row labels repeat in every column; show them once (first column) and
+     keep the copies available to assistive tech */
+  .summary-col--updated .summary-row dt,
+  .summary-col--diff .summary-row dt {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .summary-col--updated .summary-row,
+  .summary-col--diff .summary-row {
+    position: relative;
   }
 }
 
@@ -559,7 +588,7 @@ main {
 
 .summary-row dt small {
   font-size: 0.92em;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .summary-row dd {
@@ -874,7 +903,8 @@ main {
 }
 
 .site-footer p {
-  max-width: var(--page-max);
+  /* Same shared content edge as the hero and main */
+  max-width: calc(var(--page-max) - 2 * var(--page-pad));
   margin-inline: auto;
   font-size: 0.8rem;
   line-height: 1.6;
