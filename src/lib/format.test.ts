@@ -6,14 +6,28 @@ import { dicts } from '../i18n';
 const norm = (s: string) => s.replace(/[\u202F\u00A0]/g, ' ');
 
 describe('formatEuro', () => {
-  it('pt: comma decimals, € suffix', () => {
-    // pt-PT CLDR has minimumGroupingDigits=2: NO group separator below 10 000.
-    expect(norm(formatEuro(1234.56, 'pt'))).toBe('1234,56 €');
-    expect(norm(formatEuro(150000, 'pt'))).toMatch(/^150 000,00 €$/);
+  it('pt: comma decimals, thin-space grouping from 1000 up, € suffix', () => {
+    // Deliberate deviation from raw pt-PT Intl (which omits grouping below
+    // 10 000): the site spec is thin-space grouping from 1 000 up ("1 234,56 €").
+    expect(norm(formatEuro(1234.56, 'pt'))).toBe('1 234,56 €');
+    expect(norm(formatEuro(150000, 'pt'))).toBe('150 000,00 €');
     expect(norm(formatEuro(673.57, 'pt'))).toBe('673,57 €');
   });
   it('en: dot decimals, € prefix', () => {
     expect(norm(formatEuro(1234.56, 'en'))).toMatch(/^€ ?1,234\.56$/);
+  });
+  it('en: exact bytes — unchanged by the pt thin-space grouping', () => {
+    expect(formatEuro(1234.56, 'en')).toBe('€1,234.56');
+    expect(formatSignedEuro(29.16, 'en')).toBe('+€29.16');
+  });
+  it('pt: exact bytes — U+202F group separator, NBSP (U+00A0) before €', () => {
+    // Pins the byte contract React 19 hydration determinism relies on: the
+    // manually inserted group separators stay narrow NBSP (U+202F) while the
+    // currency spacer is normalized to NBSP (U+00A0) by nbsp(); every other
+    // assertion norm()s both away.
+    expect(formatEuro(1234.56, 'pt')).toBe('1\u202f234,56\u00a0€');
+    expect(formatEuro(150000, 'pt')).toBe('150\u202f000,00\u00a0€');
+    expect(formatSignedEuro(-1234.56, 'pt')).toBe('-1\u202f234,56\u00a0€');
   });
 });
 
@@ -25,12 +39,17 @@ describe('signed formats (Diferença column)', () => {
     expect(formatSignedInt(-40, 'pt')).toBe('-40');
     expect(formatSignedInt(0, 'pt')).toBe('0');
   });
+  it('pt: keeps sign placement with thin-space grouping', () => {
+    expect(norm(formatSignedEuro(-1234.56, 'pt'))).toBe('-1 234,56 €');
+    expect(norm(formatSignedEuro(1234.56, 'pt'))).toBe('+1 234,56 €');
+    expect(formatSignedInt(-12000, 'pt')).toBe('-12\u202f000');
+  });
 });
 
 describe('formatInt', () => {
   it('formats whole numbers', () => {
     expect(formatInt(360, 'pt')).toBe('360');
-    expect(norm(formatInt(12000, 'pt'))).toBe('12 000');
+    expect(formatInt(12000, 'pt')).toBe('12\u202f000');
   });
 });
 
@@ -83,6 +102,22 @@ describe('parseNumber', () => {
     expect(parseNumber('.5', 'en')).toBe(0.5);
     // Negative values parse; range rejection (e.g. amounts must be > 0) is validate()'s job.
     expect(parseNumber('-5', 'pt')).toBe(-5);
+  });
+  it('round-trips the pt thin-space-grouped display format', () => {
+    // U+202F is stripped up front, so the grouped output re-parses through the
+    // non-grouped branch ('1 234,56' -> '1234,56' -> 1234.56).
+    expect(parseNumber('1\u202f234,56', 'pt')).toBe(1234.56);
+    expect(parseNumber('150\u202f000', 'pt')).toBe(150000);
+    expect(parseNumber(formatInt(150000, 'pt'), 'pt')).toBe(150000);
+    expect(parseNumber(formatEuro(1234.56, 'pt'), 'pt')).toBe(1234.56);
+    expect(parseNumber('150.000', 'pt')).toBe(150000); // typed dot grouping still accepted
+  });
+  it('round-trips the signed display formats (leading sign + grouping)', () => {
+    expect(parseNumber(formatSignedInt(-12000, 'pt'), 'pt')).toBe(-12000);
+    expect(parseNumber(formatSignedEuro(-1234.56, 'pt'), 'pt')).toBe(-1234.56);
+    expect(parseNumber(formatSignedEuro(1234.56, 'pt'), 'pt')).toBe(1234.56);
+    expect(parseNumber(formatSignedEuro(-1234.56, 'en'), 'en')).toBe(-1234.56);
+    expect(parseNumber('-1,5', 'en')).toBe(-1.5); // signed continental decimal
   });
   it('rejects garbage and empties', () => {
     expect(parseNumber('', 'pt')).toBeNull();
