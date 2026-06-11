@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { dicts } from '../../i18n';
+import Calculator from '../../components/Calculator';
 
 const dict = dicts.en;
 ---
@@ -12,7 +13,7 @@ const dict = dicts.en;
   </header>
   <main>
     <section class="calculator-slot" id="simulador">
-      <!-- Calculator island added in Task 9 -->
+      <Calculator client:load locale="en" dict={dict} />
     </section>
     <section class="faq" id="faq">
       <h2>{dict.faq.title}</h2>
