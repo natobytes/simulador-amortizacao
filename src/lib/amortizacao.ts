@@ -34,3 +34,76 @@ export function pmt(principal: number, i: number, months: number): number {
   if (i === 0) return principal / months;
   return (principal * i) / (1 - (1 + i) ** -months);
 }
+
+export type Strategy = 'reduceTerm' | 'reduceInstallment';
+
+export interface SimulationInput {
+  /** Capital em dívida (EUR). */
+  capital: number;
+  /** Nº de prestações em falta (months). */
+  installments: number;
+  /** TAN = spread + Euribor, in percent (e.g. 3.5). */
+  annualRatePct: number;
+  /** Valor a amortizar (EUR). */
+  amortization: number;
+}
+
+/** Breakdown of the NEXT single monthly installment (not lifetime totals). */
+export interface InstallmentBreakdown {
+  interest: number;
+  principal: number;
+  installment: number;
+  remaining: number;
+}
+
+export interface ScenarioResult {
+  current: InstallmentBreakdown;
+  updated: InstallmentBreakdown;
+  diff: InstallmentBreakdown;
+}
+
+function breakdown(interest: number, principal: number, remaining: number): InstallmentBreakdown {
+  const r2i = round2(interest);
+  const r2p = round2(principal);
+  // The displayed installment is the SUM of the independently rounded parts —
+  // it may differ by 1 cent from round2(payment). This matches the live site.
+  return { interest: r2i, principal: r2p, installment: round2(r2i + r2p), remaining };
+}
+
+export function simulate(input: SimulationInput, strategy: Strategy): ScenarioResult {
+  const { capital: B, installments: n, amortization: A } = input;
+  const i = monthlyRate(input.annualRatePct);
+  const pmtOld = pmt(B, i, n);
+
+  const current = breakdown(B * i, pmtOld - B * i, n);
+
+  const Bn = B - A;
+  let updated: InstallmentBreakdown;
+
+  if (Bn <= 0) {
+    updated = { interest: 0, principal: 0, installment: 0, remaining: 0 };
+  } else if (strategy === 'reduceInstallment') {
+    const pmtNew = pmt(Bn, i, n);
+    updated = breakdown(Bn * i, pmtNew - Bn * i, n);
+  } else {
+    const nExact = i === 0 ? Bn / pmtOld : Math.log(pmtOld / (pmtOld - Bn * i)) / Math.log(1 + i);
+    const nFrac = roundHalfEven(nExact, 2); // mandatory intermediate 2dp rounding
+    if (nFrac < 1) {
+      // E4: degenerate tiny residual — one final installment.
+      updated = breakdown(Bn * i, Bn, 1);
+    } else {
+      const pmtNew = pmt(Bn, i, nFrac); // recomputed at the FRACTIONAL 2dp term
+      updated = breakdown(Bn * i, pmtNew - Bn * i, roundHalfEven(nFrac, 0));
+    }
+  }
+
+  // Differences of the ROUNDED display values (±0.01 artifacts are correct).
+  const diff: InstallmentBreakdown = {
+    interest: round2(updated.interest - current.interest),
+    principal: round2(updated.principal - current.principal),
+    installment: round2(updated.installment - current.installment),
+    remaining: updated.remaining - current.remaining,
+  };
+
+  return { current, updated, diff };
+}
