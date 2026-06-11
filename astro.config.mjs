@@ -3,7 +3,7 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
-  site: 'https://natobytes.github.io',
+  site: 'https://natobytes.com',
   base: '/simulador-amortizacao',
   trailingSlash: 'always',
   i18n: {

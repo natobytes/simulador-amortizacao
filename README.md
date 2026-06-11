@@ -10,8 +10,8 @@ Compares both options — **shorten the term** and **lower the payment** — sid
 with interest savings, the 2026 early-repayment fee rules and stamp duty. Everything runs
 in your browser: no data ever leaves your machine.
 
-**Live:** https://natobytes.github.io/simulador-amortizacao/ (PT) ·
-https://natobytes.github.io/simulador-amortizacao/en/ (EN)
+**Live:** https://natobytes.com/simulador-amortizacao/ (PT) ·
+https://natobytes.com/simulador-amortizacao/en/ (EN)
 
 ## Stack
 
