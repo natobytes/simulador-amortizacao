@@ -16,6 +16,7 @@ export interface Dict {
     commissionHelp: string;
     commissionOptions: { none: string; variable: string; fixed: string; custom: string };
     customRate: string;
+    fillPrompt: string;
     errors: Record<'required' | 'positive' | 'integer' | 'negative' | 'exceedsCapital' | 'invalid', string>;
   };
   scenarios: {

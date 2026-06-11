@@ -27,6 +27,7 @@ export const pt: Dict = {
       custom: 'Outra…',
     },
     customRate: 'Comissão personalizada (%)',
+    fillPrompt: 'Preenche os campos acima para veres a simulação.',
     errors: {
       required: 'Campo obrigatório',
       positive: 'Tem de ser superior a zero',

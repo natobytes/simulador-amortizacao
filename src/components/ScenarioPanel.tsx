@@ -34,9 +34,10 @@ export default function ScenarioPanel({ strategy, input, commissionRatePct, dict
         <h2>{meta.title}</h2>
         <p>{meta.subtitle}</p>
       </header>
-      {/* Single live region per scenario so screen readers announce recalculations
-          without double announcements from nested regions. */}
-      <div className="scenario-results" aria-live="polite">
+      {/* Recalculation announcements come from the persistent aria-live region
+          in Calculator.tsx, which wraps both panels; no aria-live here so
+          regions don't nest and double-announce. */}
+      <div className="scenario-results">
         <SavingsBanner savings={savings} fullPayoff={result.updated.remaining === 0} dict={dict} locale={locale} />
         <SummaryCards result={result} dict={dict} locale={locale} />
         <BalanceChart
