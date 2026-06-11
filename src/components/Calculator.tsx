@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dict } from '../i18n';
 import type { RawInput, SimulationInput } from '../lib/amortizacao';
 import { validate } from '../lib/amortizacao';
@@ -23,6 +23,35 @@ function emptyForm(): FormState {
     commissionPreset: 'none',
     customCommission: '',
   };
+}
+
+// Namespaced per locale: the stored values are the raw strings the user typed
+// in that locale's conventions, and parseNumber's separator heuristics are
+// locale-branched — restoring a pt-grouped '150.000' on the en page would
+// silently reparse as 150 (and vice versa for en ','-grouping on pt).
+function storageKey(locale: Locale): string {
+  return `simulador-amortizacao:form:${locale}:v1`;
+}
+
+const COMMISSION_PRESET_VALUES: readonly string[] = ['none', 'variable', 'fixed', 'custom'];
+
+/**
+ * Shape-check a value read back from localStorage: all six FormState keys must
+ * be strings and commissionPreset one of the known presets. Anything else
+ * (older versions, manual edits, other apps) is ignored rather than trusted.
+ */
+function isStoredForm(value: unknown): value is FormState {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.capital === 'string' &&
+    typeof v.installments === 'string' &&
+    typeof v.rate === 'string' &&
+    typeof v.amortization === 'string' &&
+    typeof v.customCommission === 'string' &&
+    typeof v.commissionPreset === 'string' &&
+    COMMISSION_PRESET_VALUES.includes(v.commissionPreset)
+  );
 }
 
 interface Parsed {
@@ -91,11 +120,78 @@ function parseForm(form: FormState, locale: Locale): Parsed {
 
 export default function Calculator({ locale, dict }: { locale: Locale; dict: Dict }) {
   const [form, setForm] = useState<FormState>(emptyForm);
-  const debounced = useDebounced(form, 250);
+  const [debounced, setDebouncedNow] = useDebounced(form, 250);
   const { input, errors, commissionRatePct } = useMemo(
     () => parseForm(debounced, locale),
     [debounced, locale],
   );
+
+  // localStorage persistence. The island is SSR'd and hydrated by React 19,
+  // so storage is never touched during render or in a state initializer
+  // (server/client mismatch); restore happens in a mount effect instead.
+  const restoreDone = useRef(false);
+
+  // Save effect — declared BEFORE the restore effect so its mount run sees
+  // restoreDone.current === false and skips (effects run in declaration order
+  // on mount). The restore effect's cleanup resets the flag, so a remount
+  // (e.g. StrictMode's double-invocation) replays the same skip-then-restore
+  // sequence instead of overwriting storage with the empty initial form.
+  // Saving on the debounced form avoids a write per keystroke.
+  useEffect(() => {
+    if (!restoreDone.current) return;
+    try {
+      window.localStorage.setItem(
+        storageKey(locale),
+        JSON.stringify({
+          capital: debounced.capital,
+          installments: debounced.installments,
+          rate: debounced.rate,
+          amortization: debounced.amortization,
+          commissionPreset: debounced.commissionPreset,
+          customCommission: debounced.customCommission,
+        }),
+      );
+    } catch {
+      // Private mode / disabled or full storage: persistence is best-effort.
+    }
+  }, [debounced, locale]);
+
+  // Restore effect: runs once on mount (locale is fixed per page), then
+  // unblocks saving (even when nothing was stored or the stored value was
+  // malformed).
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(storageKey(locale));
+      if (raw !== null) {
+        const stored: unknown = JSON.parse(raw);
+        if (isStoredForm(stored)) {
+          const restored: FormState = {
+            capital: stored.capital,
+            installments: stored.installments,
+            rate: stored.rate,
+            amortization: stored.amortization,
+            commissionPreset: stored.commissionPreset,
+            customCommission: stored.customCommission,
+          };
+          setForm(restored);
+          // Bypass the debounce so fields and results fill in the same
+          // commit — routing the restore through it would show the
+          // fillPrompt under a visibly filled form for ~250ms.
+          setDebouncedNow(restored);
+        }
+      }
+    } catch {
+      // Malformed JSON or unavailable storage: start from the empty form.
+    }
+    restoreDone.current = true;
+    // Reset on cleanup so a remount (StrictMode double-invocation) replays
+    // the skip-save-then-restore sequence against intact storage instead of
+    // letting the save effect's second run see the flag set and clobber the
+    // stored form with the still-empty `debounced`.
+    return () => {
+      restoreDone.current = false;
+    };
+  }, [locale, setDebouncedNow]);
 
   return (
     <div className="calculator">

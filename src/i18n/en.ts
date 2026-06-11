@@ -115,7 +115,7 @@ export const en: Dict = {
       },
       {
         q: 'Is my data stored anywhere?',
-        a: 'No. Everything runs in your browser. No data is sent to any server, and there are no cookies or analytics.',
+        a: 'All calculations run in your browser and the values you type are never sent anywhere — they are saved only on your device, so they’re already filled in on your next visit. There are no cookies or analytics.',
       },
     ],
   },
