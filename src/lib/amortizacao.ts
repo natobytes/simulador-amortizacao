@@ -10,10 +10,10 @@ export function roundHalfEven(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   const scaled = value * factor;
   const floor = Math.floor(scaled);
-  const diff = scaled - floor;
+  const frac = scaled - floor;
   const EPS = 1e-9;
   let result: number;
-  if (Math.abs(diff - 0.5) < EPS) {
+  if (Math.abs(frac - 0.5) < EPS) {
     result = floor % 2 === 0 ? floor : floor + 1;
   } else {
     result = Math.round(scaled);
@@ -70,6 +70,7 @@ function breakdown(interest: number, principal: number, remaining: number): Inst
   return { interest: r2i, principal: r2p, installment: round2(r2i + r2p), remaining };
 }
 
+/** Precondition: `input` must have passed `validate()` with an empty error map; behaviour is undefined for invalid inputs. */
 export function simulate(input: SimulationInput, strategy: Strategy): ScenarioResult {
   const { capital: B, installments: n, amortization: A } = input;
   const i = monthlyRate(input.annualRatePct);
@@ -166,10 +167,12 @@ export interface Schedule {
 }
 
 const MAX_MONTHS = 1200;
-const EMPTY_SCHEDULE: Schedule = { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
 
 export function buildSchedule(startBalance: number, i: number, payment: number): Schedule {
-  if (startBalance <= 0 || payment <= 0) return EMPTY_SCHEDULE;
+  if (startBalance <= 0 || payment <= 0) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
+  // Payment must exceed first-month interest or the balance never drains
+  // (unreachable from validated input, but buildSchedule is a public export).
+  if (i > 0 && payment <= startBalance * i) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
   const rows: ScheduleRow[] = [];
   let balance = startBalance;
   let totalInterest = 0;
@@ -197,6 +200,7 @@ export interface SchedulePair {
   scenario: Schedule;
 }
 
+/** Precondition: `input` must have passed `validate()` with an empty error map; behaviour is undefined for invalid inputs. */
 export function buildSchedules(input: SimulationInput, strategy: Strategy): SchedulePair {
   const i = monthlyRate(input.annualRatePct);
   const pmtOld = pmt(input.capital, i, input.installments);
@@ -204,7 +208,7 @@ export function buildSchedules(input: SimulationInput, strategy: Strategy): Sche
   const Bn = input.capital - input.amortization;
   let scenario: Schedule;
   if (Bn <= 0) {
-    scenario = EMPTY_SCHEDULE;
+    scenario = { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
   } else if (strategy === 'reduceTerm') {
     scenario = buildSchedule(Bn, i, pmtOld);
   } else {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, validate, buildSchedule, buildSchedules, repaymentCost, computeSavings, monthlyRate as mr } from './amortizacao';
+import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, validate, buildSchedule, buildSchedules, repaymentCost, computeSavings } from './amortizacao';
 
 describe('roundHalfEven (V9)', () => {
   it('rounds 2dp half-to-even', () => {
@@ -161,7 +161,7 @@ describe('validate', () => {
 
 describe('buildSchedule (Layer B, full precision)', () => {
   it('baseline V1: n months, balance reaches 0, sums are consistent', () => {
-    const s = buildSchedule(150000, mr(3.5), 673.567032);
+    const s = buildSchedule(150000, monthlyRate(3.5), 673.567032);
     expect(s.months).toBe(360);
     expect(s.rows[s.rows.length - 1]!.balance).toBeCloseTo(0, 6);
     const sumPrincipal = s.rows.reduce((acc, r) => acc + r.principal, 0);
@@ -177,7 +177,6 @@ describe('buildSchedule (Layer B, full precision)', () => {
 });
 
 describe('buildSchedules (per strategy)', () => {
-  const V1 = { capital: 150000, installments: 360, annualRatePct: 3.5, amortization: 10000 };
   it('reduceTerm keeps the old payment and ends around month 320-321', () => {
     const { baseline, scenario } = buildSchedules(V1, 'reduceTerm');
     expect(baseline.months).toBe(360);
@@ -214,7 +213,6 @@ describe('repaymentCost', () => {
 });
 
 describe('computeSavings', () => {
-  const V1 = { capital: 150000, installments: 360, annualRatePct: 3.5, amortization: 10000 };
   it('net savings = interest saved minus costs', () => {
     const { baseline, scenario } = buildSchedules(V1, 'reduceTerm');
     const s = computeSavings(baseline, scenario, V1.amortization, 0.5);
