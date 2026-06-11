@@ -220,4 +220,44 @@ describe('computeSavings', () => {
     expect(s.cost.total).toBe(52);
     expect(s.netSavings).toBeCloseTo(s.interestSaved - 52, 2);
   });
+  it('totalBefore is the rounded baseline lifetime total (V1: 242484.13)', () => {
+    const { baseline, scenario } = buildSchedules(V1, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, V1.amortization, 0.5);
+    expect(s.totalBefore).toBe(round2(baseline.totalPaid));
+    expect(s.totalBefore).toBe(242484.13);
+  });
+  it('totalAfter = scenario payments + lump sum + costs (V1: 225593.76)', () => {
+    const { baseline, scenario } = buildSchedules(V1, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, V1.amortization, 0.5);
+    expect(s.totalAfter).toBe(round2(scenario.totalPaid + V1.amortization + s.cost.total));
+    expect(s.totalAfter).toBe(225593.76);
+  });
+  it('totalAfter sums actual cash flows, NOT totalBefore − netSavings (V2 separates them by 1 cent)', () => {
+    const { baseline, scenario } = buildSchedules(V2, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, V2.amortization, 0.5);
+    expect(s.totalAfter).toBe(round2(scenario.totalPaid + V2.amortization + s.cost.total));
+    // The back-derived round2(totalBefore − netSavings) gives 280257.44 — must fail here.
+    expect(s.totalAfter).toBe(280257.45);
+    expect(s.totalBefore).toBe(316702.1);
+  });
+  it('totalBefore − totalAfter ≈ netSavings within 0.02 (both strategies)', () => {
+    for (const strategy of ['reduceTerm', 'reduceInstallment'] as const) {
+      const { baseline, scenario } = buildSchedules(V1, strategy);
+      const s = computeSavings(baseline, scenario, V1.amortization, 0.5);
+      expect(Math.abs(s.totalBefore - s.totalAfter - s.netSavings)).toBeLessThanOrEqual(0.02);
+    }
+  });
+  it('full payoff: totalAfter is capital plus costs, and beats totalBefore when rate > 0', () => {
+    const input = { ...V1, amortization: V1.capital };
+    const { baseline, scenario } = buildSchedules(input, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, input.amortization, 0.5);
+    expect(s.totalAfter).toBe(round2(input.capital + s.cost.total));
+    expect(s.totalBefore).toBeGreaterThan(s.totalAfter);
+  });
+  it('zero commission: totalAfter excludes any cost component', () => {
+    const { baseline, scenario } = buildSchedules(V1, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, V1.amortization, 0);
+    expect(s.cost.total).toBe(0);
+    expect(s.totalAfter).toBe(round2(scenario.totalPaid + V1.amortization));
+  });
 });

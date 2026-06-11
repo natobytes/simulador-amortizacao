@@ -40,6 +40,9 @@ export interface Dict {
     commission: string;
     stampDuty: string;
     net: string;
+    totalBefore: string;
+    totalAfter: string;
+    totalAfterNote: string;
   };
   chart: { title: string; baseline: string; scenario: string; years: string };
   table: { show: string; hide: string; month: string; interest: string; principal: string; payment: string; balance: string; total: string };

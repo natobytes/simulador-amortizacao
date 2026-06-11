@@ -43,6 +43,19 @@ export default function SavingsBanner({ savings, fullPayoff, dict, locale }: Pro
           </div>
         </dl>
       )}
+      <dl className="savings-totals">
+        <div>
+          <dt>{dict.banner.totalBefore}</dt>
+          <dd data-testid="total-before">{formatEuro(savings.totalBefore, locale)}</dd>
+        </div>
+        <div>
+          <dt>
+            {dict.banner.totalAfter}
+            <small> {dict.banner.totalAfterNote}</small>
+          </dt>
+          <dd data-testid="total-after">{formatEuro(savings.totalAfter, locale)}</dd>
+        </div>
+      </dl>
     </aside>
   );
 }

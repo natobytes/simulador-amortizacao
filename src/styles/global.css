@@ -124,6 +124,7 @@ a:hover {
 .summary dd,
 .schedule-table,
 .savings-breakdown dd,
+.savings-totals dd,
 .field-input input {
   font-variant-numeric: tabular-nums;
 }
@@ -462,14 +463,17 @@ main {
   color: var(--mint);
 }
 
-.savings-breakdown {
+/* .savings-totals (lifetime totals, always visible) shares the breakdown look */
+.savings-breakdown,
+.savings-totals {
   margin: 1rem 0 0;
   padding-top: 0.4rem;
   border-top: 1px solid rgb(246 240 228 / 0.22);
   font-size: 0.88rem;
 }
 
-.savings-breakdown > div {
+.savings-breakdown > div,
+.savings-totals > div {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -477,11 +481,13 @@ main {
   padding: 0.32rem 0;
 }
 
-.savings-breakdown dt {
+.savings-breakdown dt,
+.savings-totals dt {
   color: color-mix(in srgb, var(--cream) 75%, var(--pine));
 }
 
-.savings-breakdown dd {
+.savings-breakdown dd,
+.savings-totals dd {
   margin: 0;
   font-weight: 600;
 }
@@ -501,6 +507,12 @@ main {
   color: var(--mint);
   font-weight: 700;
   font-size: 1.05rem;
+}
+
+.savings-totals dt small {
+  display: block;
+  font-size: 0.85em;
+  color: color-mix(in srgb, var(--cream) 60%, var(--pine));
 }
 
 /* ---- Summary comparison table --------------------------------------------- */
