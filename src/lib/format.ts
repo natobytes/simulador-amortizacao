@@ -106,6 +106,29 @@ export function formatYearsMonths(months: number, d: DurationDict): string {
 }
 
 /**
+ * Reformat a raw form-input string with the locale's digit grouping on blur
+ * (pt: '194616,84' -> '194\u202f616,84'; en: '194616.84' -> '194,616.84').
+ * Unparseable or blank input is returned unchanged (the field error / blank
+ * state stays visible), and the fraction is taken verbatim from
+ * String(parseNumber(...)), so the round-trip guarantee holds:
+ * parseNumber(formatInputValue(s, l), l) === parseNumber(s, l) for parseable s.
+ */
+export function formatInputValue(raw: string, locale: Locale): string {
+  const value = parseNumber(raw, locale);
+  if (value === null) return raw; // blank or invalid: leave as typed
+  const canonical = String(value);
+  // Defensive: exponent notation can't be regrouped digit-wise. Validated
+  // inputs never reach magnitudes where String() emits it.
+  if (canonical.includes('e') || canonical.includes('E')) return raw;
+  const sign = canonical.startsWith('-') ? '-' : '';
+  const [intDigits, fraction] = (sign ? canonical.slice(1) : canonical).split('.');
+  const grouped =
+    locale === 'pt' ? groupThinSpaces(intDigits) : intDigits.replace(/\B(?=(\d{3})+$)/g, ',');
+  const decimalSep = locale === 'pt' ? ',' : '.';
+  return sign + grouped + (fraction !== undefined ? decimalSep + fraction : '');
+}
+
+/**
  * Parse user input per locale convention.
  * pt: comma is decimal; a dot followed by exactly 3 digits is grouping ("1.234"),
  *     otherwise the dot is treated as a decimal typo ("3.5" -> 3.5).

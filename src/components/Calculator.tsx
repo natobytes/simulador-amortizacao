@@ -195,7 +195,7 @@ export default function Calculator({ locale, dict }: { locale: Locale; dict: Dic
 
   return (
     <div className="calculator">
-      <InputForm form={form} errors={errors} dict={dict} onChange={setForm} />
+      <InputForm form={form} errors={errors} dict={dict} locale={locale} onChange={setForm} />
       {/* The live region must exist from first render: screen readers ignore
           content that arrives together with the region itself, so mounting it
           inside the conditional would leave the first results unannounced. */}

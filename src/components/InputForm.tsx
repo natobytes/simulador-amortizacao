@@ -1,5 +1,6 @@
 import type { Dict } from '../i18n';
 import type { FieldErrors, FieldKey } from '../lib/amortizacao';
+import { formatInputValue, type Locale } from '../lib/format';
 
 export type CommissionPreset = 'none' | 'variable' | 'fixed' | 'custom';
 
@@ -16,6 +17,7 @@ interface Props {
   form: FormState;
   errors: FieldErrors;
   dict: Dict;
+  locale: Locale;
   onChange: (next: FormState) => void;
 }
 
@@ -27,7 +29,7 @@ interface FieldDef {
   inputMode: 'decimal' | 'numeric';
 }
 
-export default function InputForm({ form, errors, dict, onChange }: Props) {
+export default function InputForm({ form, errors, dict, locale, onChange }: Props) {
   const fields: FieldDef[] = [
     { key: 'capital', errorKey: 'capital', label: dict.form.capital, suffix: '€', inputMode: 'decimal' },
     { key: 'installments', errorKey: 'installments', label: dict.form.installments, suffix: '', inputMode: 'numeric' },
@@ -58,6 +60,14 @@ export default function InputForm({ form, errors, dict, onChange }: Props) {
                   aria-invalid={error ? true : undefined}
                   aria-describedby={error ? `${f.key}-error` : undefined}
                   onChange={(e) => onChange({ ...form, [f.key]: e.target.value })}
+                  onBlur={(e) => {
+                    // Only dispatch when the reformat actually changes the
+                    // string: a new FormState identity restarts the 250ms
+                    // debounce (postponing any pending error/result update)
+                    // and re-runs the parse/simulate/persist pipeline.
+                    const next = formatInputValue(e.target.value, locale);
+                    if (next !== e.target.value) onChange({ ...form, [f.key]: next });
+                  }}
                 />
                 {f.suffix && <span className="suffix" aria-hidden="true">{f.suffix}</span>}
               </div>
@@ -97,6 +107,11 @@ export default function InputForm({ form, errors, dict, onChange }: Props) {
                 aria-invalid={errors.commission ? true : undefined}
                 aria-describedby={errors.commission ? 'customCommission-error' : undefined}
                 onChange={(e) => set({ customCommission: e.target.value })}
+                onBlur={(e) => {
+                  // Same no-op guard as the generic fields above.
+                  const next = formatInputValue(e.target.value, locale);
+                  if (next !== e.target.value) set({ customCommission: next });
+                }}
               />
               <span className="suffix" aria-hidden="true">%</span>
             </div>
