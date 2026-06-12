@@ -129,6 +129,102 @@ export function formatInputValue(raw: string, locale: Locale): string {
 }
 
 /**
+ * Mid-typing guards: only strings that are unambiguously a plain number in
+ * the locale's own conventions get live-regrouped. Anything with a foreign
+ * separator (a '.' on pt, where it could be either grouping or a decimal
+ * typo; a misplaced ',' or a pt-style space on en) is left alone while
+ * typing — blur (formatInputValue) remains the canonicalizer for those, so
+ * typing '1.5' on pt is never rewritten mid-keystroke.
+ */
+const TYPED_GUARD: Record<Locale, RegExp> = {
+  pt: /^-?[0-9\u202F\u00A0 ]*(?:,[0-9]*)?$/,
+  en: /^-?[0-9,]*(?:\.[0-9]*)?$/,
+};
+
+/** Group-separator chars stripped from the integer part before regrouping. */
+const TYPED_GROUP_CHARS: Record<Locale, RegExp> = {
+  pt: /[\u202F\u00A0 ]/g,
+  en: /,/g,
+};
+
+/**
+ * Caret-significant chars: digits, the sign, and the locale decimal
+ * separator. Group separators are NOT significant — they are exactly what
+ * the transform inserts/removes, so the caret is re-anchored to the
+ * significant chars around it.
+ */
+const TYPED_SIGNIFICANT: Record<Locale, RegExp> = {
+  pt: /[0-9,-]/,
+  en: /[0-9.-]/,
+};
+
+/**
+ * Live (per-keystroke) digit grouping for a controlled text input, pure and
+ * caret-aware: regroups the integer part with the locale's group separator
+ * (pt: thin space U+202F; en: ',') while keeping the decimal tail verbatim,
+ * including a trailing decimal separator (pt '194616,' keeps its comma and
+ * gains a U+202F group separator after the leading '194').
+ * Leading zeros are left untouched (no normalization while typing), and
+ * strings of <= 3 integer digits come back unchanged.
+ *
+ * Invariant: parseNumber(groupAsTyped(s, c, l).value, l) === parseNumber(s, l)
+ * for ALL inputs — the transform only ever moves group separators (separator-
+ * only edits). Two layers enforce this:
+ * 1. A conservative guard (TYPED_GUARD): anything that isn't unambiguously a
+ *    plain number in this locale's own conventions is returned unchanged;
+ *    blur (formatInputValue) canonicalizes those instead. On en, a trailing
+ *    ',' is also left alone — it is ambiguous between grouping-in-progress
+ *    ('1,' -> '1,234') and a continental decimal ('1,' -> '1,5'), which blur
+ *    resolves.
+ * 2. A parse-preservation check: if regrouping would change what parseNumber
+ *    reads (e.g. en '12,34', a continental decimal that the comma-stripping
+ *    transform would turn into 1234), the raw string is returned unchanged.
+ *
+ * Caret mapping: count the significant chars (digits, '-', the locale decimal
+ * separator) strictly before the old caret; the new caret sits right after
+ * that same count of significant chars in the new value, clamped to
+ * [0, value.length].
+ */
+export function groupAsTyped(
+  raw: string,
+  caret: number,
+  locale: Locale,
+): { value: string; caret: number } {
+  if (!TYPED_GUARD[locale].test(raw)) return { value: raw, caret };
+  // en trailing comma: ambiguous (grouping vs continental decimal) — see JSDoc.
+  if (locale === 'en' && raw.endsWith(',')) return { value: raw, caret };
+
+  const decimalSep = locale === 'pt' ? ',' : '.';
+  const sign = raw.startsWith('-') ? '-' : '';
+  const unsigned = sign ? raw.slice(1) : raw;
+  const sepIdx = unsigned.indexOf(decimalSep);
+  const intPart = sepIdx === -1 ? unsigned : unsigned.slice(0, sepIdx);
+  const tail = sepIdx === -1 ? '' : unsigned.slice(sepIdx); // verbatim, incl. the separator
+  const digits = intPart.replace(TYPED_GROUP_CHARS[locale], '');
+  const grouped =
+    locale === 'pt' ? groupThinSpaces(digits) : digits.replace(/\B(?=(\d{3})+$)/g, ',');
+  const value = sign + grouped + tail;
+  // No-op regroup: return the original caret untouched (re-anchoring it to
+  // significant chars could move it across a separator the user just crossed).
+  if (value === raw) return { value: raw, caret };
+  if (parseNumber(value, locale) !== parseNumber(raw, locale)) return { value: raw, caret };
+
+  const significant = TYPED_SIGNIFICANT[locale];
+  const upto = Math.min(Math.max(caret, 0), raw.length);
+  let count = 0;
+  for (let i = 0; i < upto; i++) {
+    if (significant.test(raw[i]!)) count++;
+  }
+  let newCaret = 0;
+  let seen = 0;
+  while (newCaret < value.length && seen < count) {
+    if (significant.test(value[newCaret]!)) seen++;
+    newCaret++;
+  }
+  return { value, caret: newCaret };
+}
+
+/**
  * Parse user input per locale convention.
  * pt: comma is decimal; a dot followed by exactly 3 digits is grouping ("1.234"),
  *     otherwise the dot is treated as a decimal typo ("3.5" -> 3.5).

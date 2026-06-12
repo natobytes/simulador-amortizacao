@@ -1,6 +1,7 @@
+import { useLayoutEffect, useRef, type ChangeEvent } from 'react';
 import type { Dict } from '../i18n';
 import type { FieldErrors, FieldKey } from '../lib/amortizacao';
-import { formatInputValue, type Locale } from '../lib/format';
+import { formatInputValue, groupAsTyped, type Locale } from '../lib/format';
 
 export type CommissionPreset = 'none' | 'variable' | 'fixed' | 'custom';
 
@@ -39,6 +40,63 @@ export default function InputForm({ form, errors, dict, locale, onChange }: Prop
 
   const set = (patch: Partial<FormState>) => onChange({ ...form, ...patch });
 
+  // Live regrouping rewrites the input's value mid-keystroke; React resets the
+  // caret to the end of a controlled input whenever the committed value differs
+  // from the DOM value, so groupAsTyped's remapped caret is stashed here and
+  // restored after the commit.
+  const pendingCaret = useRef<{ id: string; caret: number } | null>(null);
+
+  // useLayoutEffect runs after the controlled value commits to the DOM but
+  // before paint, so the caret never visibly jumps. No dep array: it must run
+  // after every render, and it no-ops unless a caret restore is pending.
+  useLayoutEffect(() => {
+    const pending = pendingCaret.current;
+    if (!pending) return;
+    pendingCaret.current = null;
+    const el = document.activeElement;
+    if (el instanceof HTMLInputElement && el.id === pending.id) {
+      try {
+        el.setSelectionRange(pending.caret, pending.caret);
+      } catch {
+        // Some mobile browsers throw on detached nodes; losing the caret
+        // position is the acceptable fallback.
+      }
+    }
+  });
+
+  // Shared onChange path for all numeric text inputs: live-regroup the typed
+  // value (caret-safe; groupAsTyped returns the raw string unchanged for
+  // anything ambiguous) and remember where the caret belongs when the string
+  // was rewritten.
+  const handleNumericChange = (
+    e: ChangeEvent<HTMLInputElement>,
+    prev: string,
+    apply: (value: string) => void,
+  ) => {
+    const el = e.target;
+    const res = groupAsTyped(el.value, el.selectionStart ?? el.value.length, locale);
+    let caret = res.caret;
+    // Forward-Delete of a group separator is absorbed by the regroup: the
+    // separator is re-inserted and the caret maps back to the exact
+    // pre-keypress position, which would make Delete a permanent no-op there
+    // (Backspace is fine — its caret naturally ends up past the separator).
+    // Detect the absorbed deletion (regrouped result identical to the
+    // previously committed value on a forward delete) and advance the caret
+    // past the re-inserted separator so the next Delete reaches the digit
+    // behind it, mirroring Backspace's absorb-then-progress behavior. Only a
+    // separator-only deletion can regroup back to the previous value (any
+    // digit/sign/decimal deletion changes it), so this cannot misfire on
+    // digit deletions that merely land the caret next to a separator.
+    if (
+      res.value === prev &&
+      (e.nativeEvent as InputEvent).inputType === 'deleteContentForward'
+    ) {
+      caret = Math.min(caret + 1, res.value.length);
+    }
+    apply(res.value);
+    if (res.value !== el.value) pendingCaret.current = { id: el.id, caret };
+  };
+
   return (
     <form className="input-form" onSubmit={(e) => e.preventDefault()}>
       <fieldset>
@@ -59,7 +117,9 @@ export default function InputForm({ form, errors, dict, locale, onChange }: Prop
                   value={form[f.key]}
                   aria-invalid={error ? true : undefined}
                   aria-describedby={error ? `${f.key}-error` : undefined}
-                  onChange={(e) => onChange({ ...form, [f.key]: e.target.value })}
+                  onChange={(e) =>
+                    handleNumericChange(e, form[f.key], (value) => onChange({ ...form, [f.key]: value }))
+                  }
                   onBlur={(e) => {
                     // Only dispatch when the reformat actually changes the
                     // string: a new FormState identity restarts the 250ms
@@ -106,7 +166,9 @@ export default function InputForm({ form, errors, dict, locale, onChange }: Prop
                 value={form.customCommission}
                 aria-invalid={errors.commission ? true : undefined}
                 aria-describedby={errors.commission ? 'customCommission-error' : undefined}
-                onChange={(e) => set({ customCommission: e.target.value })}
+                onChange={(e) =>
+                  handleNumericChange(e, form.customCommission, (value) => set({ customCommission: value }))
+                }
                 onBlur={(e) => {
                   // Same no-op guard as the generic fields above.
                   const next = formatInputValue(e.target.value, locale);
