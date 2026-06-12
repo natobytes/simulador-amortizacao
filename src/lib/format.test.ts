@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { formatEuro, formatSignedEuro, formatInt, formatSignedInt, formatYearsMonths, parseNumber } from './format';
+import { formatEuro, formatSignedEuro, formatInt, formatSignedInt, formatYearsMonths, formatInputValue, parseNumber } from './format';
+import type { Locale } from './format';
 import { dicts } from '../i18n';
 
 // Intl grouping/space characters vary (NBSP vs narrow NBSP); normalize for assertions.
@@ -79,6 +80,41 @@ describe('formatYearsMonths', () => {
   });
   it('rounds fractional months instead of leaking float noise', () => {
     expect(formatYearsMonths(13.7, pt)).toBe('1 ano e 2 meses');
+  });
+});
+
+describe('formatInputValue', () => {
+  it('pt: thin-space (U+202F) grouping, comma decimal', () => {
+    expect(formatInputValue('194616,84', 'pt')).toBe('194\u202f616,84');
+    expect(formatInputValue('150.000', 'pt')).toBe('150\u202f000'); // typed dot grouping canonicalized
+    expect(formatInputValue('3,5', 'pt')).toBe('3,5');
+    expect(formatInputValue('360', 'pt')).toBe('360');
+  });
+  it('pt: never rounds typed decimals (simulation input must display exactly)', () => {
+    expect(formatInputValue('3,275', 'pt')).toBe('3,275');
+  });
+  it('en: comma grouping, dot decimal', () => {
+    expect(formatInputValue('194616.84', 'en')).toBe('194,616.84');
+    expect(formatInputValue('1,5', 'en')).toBe('1.5'); // continental decimal canonicalized
+  });
+  it('leaves blank and unparseable input unchanged', () => {
+    expect(formatInputValue('', 'pt')).toBe('');
+    expect(formatInputValue('abc', 'pt')).toBe('abc');
+    expect(formatInputValue('1..2', 'pt')).toBe('1..2');
+  });
+  it('preserves a leading minus', () => {
+    expect(formatInputValue('-5', 'pt')).toBe('-5');
+  });
+  it('round-trips through parseNumber in both locales', () => {
+    const inputs: Record<Locale, string[]> = {
+      pt: ['194616,84', '150.000', '3,5', '3,275', '360', '-5', '1.234,56', '150 000', '194616,80', '0,5'],
+      en: ['194616.84', '150,000', '3.5', '3.275', '360', '-5', '1,234.56', '1,5', '.5'],
+    };
+    for (const locale of ['pt', 'en'] as const) {
+      for (const x of inputs[locale]) {
+        expect(parseNumber(formatInputValue(x, locale), locale)).toBe(parseNumber(x, locale));
+      }
+    }
   });
 });
 
