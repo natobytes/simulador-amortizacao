@@ -3,7 +3,7 @@ import type { Dict } from '../i18n';
 import type { RawInput, SimulationInput } from '../lib/amortizacao';
 import { validate } from '../lib/amortizacao';
 import type { Locale } from '../lib/format';
-import { parseNumber } from '../lib/format';
+import { formatInputValue, parseNumber } from '../lib/format';
 import InputForm, { type CommissionPreset, type FormState } from './InputForm';
 import ScenarioPanel from './ScenarioPanel';
 import { useDebounced } from './useDebounced';
@@ -25,10 +25,12 @@ function emptyForm(): FormState {
   };
 }
 
-// Namespaced per locale: the stored values are the raw strings the user typed
-// in that locale's conventions, and parseNumber's separator heuristics are
-// locale-branched — restoring a pt-grouped '150.000' on the en page would
-// silently reparse as 150 (and vice versa for en ','-grouping on pt).
+// Namespaced per locale: the stored values are form strings in that locale's
+// conventions — live-grouped/blur-canonicalized, or raw only when the typed
+// string was ambiguous or unparseable (e.g. a pt '150.000' saved mid-typing) —
+// and parseNumber's separator heuristics are locale-branched: restoring that
+// pt '150.000' on the en page would silently reparse as 150 (and vice versa
+// for en ','-grouping on pt).
 function storageKey(locale: Locale): string {
   return `simulador-amortizacao:form:${locale}:v1`;
 }
@@ -165,13 +167,18 @@ export default function Calculator({ locale, dict }: { locale: Locale; dict: Dic
       if (raw !== null) {
         const stored: unknown = JSON.parse(raw);
         if (isStoredForm(stored)) {
+          // Stored values are raw typed strings that never went through the
+          // blur formatter; reformat on restore so fields render grouped
+          // ('194616,84' -> grouped) and legacy entries are canonicalized
+          // ('2.65' -> '2,65' on pt). Restored text is programmatic — no
+          // caret concerns. Blank/unparseable strings pass through unchanged.
           const restored: FormState = {
-            capital: stored.capital,
-            installments: stored.installments,
-            rate: stored.rate,
-            amortization: stored.amortization,
+            capital: formatInputValue(stored.capital, locale),
+            installments: formatInputValue(stored.installments, locale),
+            rate: formatInputValue(stored.rate, locale),
+            amortization: formatInputValue(stored.amortization, locale),
             commissionPreset: stored.commissionPreset,
-            customCommission: stored.customCommission,
+            customCommission: formatInputValue(stored.customCommission, locale),
           };
           setForm(restored);
           // Bypass the debounce so fields and results fill in the same
