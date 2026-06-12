@@ -46,15 +46,14 @@ export default function SummaryCards({ result, dict, locale }: Props) {
                   </dt>
                   <dd data-testid={`${col.key}-${row.key}`}>
                     {col.value(result[col.key], row.key)}
-                    {col.key === 'diff' &&
-                      row.key === 'remaining' &&
-                      Math.abs(result.diff.remaining) >= 12 && (
+                    {row.key === 'remaining' &&
+                      Math.abs(result[col.key].remaining) >= 12 && (
                         // The separating space lives OUTSIDE the note: leading
                         // whitespace inside an inline-block collapses away.
                         <>
                           {' '}
                           <small className="duration-note">
-                            {`(${formatYearsMonths(result.diff.remaining, dict.cards.duration)})`}
+                            {`(${formatYearsMonths(result[col.key].remaining, dict.cards.duration)})`}
                           </small>
                         </>
                       )}
