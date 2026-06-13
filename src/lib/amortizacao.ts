@@ -334,6 +334,22 @@ export function repaymentCost(amortization: number, commissionRatePct: number): 
   return { commission, stampDuty, total: round2(commission + stampDuty) };
 }
 
+/**
+ * Total early-repayment cost across several events. Each event is costed and
+ * rounded independently (the bank bills each separately) and the running totals
+ * are accumulated with round2, so the result matches per-event billing exactly.
+ */
+export function sumRepaymentCost(amounts: number[], commissionRatePct: number): CostBreakdown {
+  let commission = 0;
+  let stampDuty = 0;
+  for (const amount of amounts) {
+    const c = repaymentCost(amount, commissionRatePct);
+    commission = round2(commission + c.commission);
+    stampDuty = round2(stampDuty + c.stampDuty);
+  }
+  return { commission, stampDuty, total: round2(commission + stampDuty) };
+}
+
 export interface SavingsSummary {
   interestSaved: number;
   cost: CostBreakdown;
@@ -351,10 +367,17 @@ export function computeSavings(
   commissionRatePct: number,
 ): SavingsSummary {
   const interestSaved = round2(baseline.totalInterest - scenario.totalInterest);
-  const cost = repaymentCost(amortization, commissionRatePct);
+  // A scenario from buildSchedules always carries its actual per-event lump
+  // amounts (final one capped), so this is the live path. The `amortization`
+  // arg is only a defensive fallback for a caller that hands in a bare,
+  // non-amortized schedule (e.g. directly from buildSchedule).
+  const hasEvents = scenario.amortizations.length > 0;
+  const events = hasEvents ? scenario.amortizations : [amortization];
+  const amortizedTotal = hasEvents ? scenario.amortized : amortization;
+  const cost = sumRepaymentCost(events, commissionRatePct);
   // Both totals fully repay the capital, so totalBefore − totalAfter ≈ netSavings
   // (within a cent or two of independent-rounding artifacts, which are correct).
   const totalBefore = round2(baseline.totalPaid);
-  const totalAfter = round2(scenario.totalPaid + amortization + cost.total);
+  const totalAfter = round2(scenario.totalPaid + amortizedTotal + cost.total);
   return { interestSaved, cost, netSavings: round2(interestSaved - cost.total), totalBefore, totalAfter };
 }

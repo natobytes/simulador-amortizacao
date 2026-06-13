@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, type Frequency, frequencyInterval, validate, buildSchedule, buildSchedules, repaymentCost, computeSavings } from './amortizacao';
+import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, type Frequency, frequencyInterval, validate, buildSchedule, buildSchedules, repaymentCost, sumRepaymentCost, computeSavings } from './amortizacao';
 
 describe('roundHalfEven (V9)', () => {
   it('rounds 2dp half-to-even', () => {
@@ -326,5 +326,38 @@ describe('buildSchedules — recurring frequency', () => {
     expect(scenario.months).toBe(0);
     expect(scenario.amortized).toBe(150000);
     expect(scenario.amortizations).toEqual([150000]);
+  });
+});
+
+describe('sumRepaymentCost', () => {
+  it('sums per-event commission and stamp duty', () => {
+    expect(sumRepaymentCost([10000, 10000], 0.5)).toEqual({ commission: 100, stampDuty: 4, total: 104 });
+  });
+  it('matches single repaymentCost for one event', () => {
+    expect(sumRepaymentCost([10000], 0.5)).toEqual(repaymentCost(10000, 0.5));
+  });
+  it('zero commission yields no cost', () => {
+    expect(sumRepaymentCost([10000, 5000], 0)).toEqual({ commission: 0, stampDuty: 0, total: 0 });
+  });
+});
+
+describe('computeSavings — recurring', () => {
+  it('sums commission across every repayment event', () => {
+    const { baseline, scenario } = buildSchedules({ ...V1, frequency: 'yearly' }, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, V1.amortization, 0.5);
+    expect(scenario.amortizations.length).toBeGreaterThan(1);
+    expect(s.cost.total).toBeGreaterThan(52); // more than a single 10 000 € event (52 €)
+  });
+  it('totalAfter = scenario installments + total amortized + total cost', () => {
+    const { baseline, scenario } = buildSchedules({ ...V1, frequency: 'yearly' }, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, V1.amortization, 0.5);
+    expect(s.totalAfter).toBe(round2(scenario.totalPaid + scenario.amortized + s.cost.total));
+  });
+  it('recurring saves more interest than a single lump', () => {
+    const oncePair = buildSchedules({ ...V1, frequency: 'once' }, 'reduceTerm');
+    const onceSaved = computeSavings(oncePair.baseline, oncePair.scenario, V1.amortization, 0.5).interestSaved;
+    const yearlyPair = buildSchedules({ ...V1, frequency: 'yearly' }, 'reduceTerm');
+    const yearlySaved = computeSavings(yearlyPair.baseline, yearlyPair.scenario, V1.amortization, 0.5).interestSaved;
+    expect(yearlySaved).toBeGreaterThan(onceSaved);
   });
 });
