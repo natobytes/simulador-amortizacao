@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type ChangeEvent } from 'react';
 import type { Dict } from '../i18n';
-import type { FieldErrors, FieldKey } from '../lib/amortizacao';
+import type { FieldErrors, FieldKey, Frequency } from '../lib/amortizacao';
 import { formatInputValue, groupAsTyped, type Locale } from '../lib/format';
 
 export type CommissionPreset = 'none' | 'variable' | 'fixed' | 'custom';
@@ -10,6 +10,7 @@ export interface FormState {
   installments: string;
   rate: string;
   amortization: string;
+  frequency: Frequency;
   commissionPreset: CommissionPreset;
   customCommission: string;
 }

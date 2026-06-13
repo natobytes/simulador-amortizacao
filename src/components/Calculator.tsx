@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dict } from '../i18n';
-import type { RawInput, SimulationInput } from '../lib/amortizacao';
+import type { Frequency, RawInput, SimulationInput } from '../lib/amortizacao';
 import { validate } from '../lib/amortizacao';
 import type { Locale } from '../lib/format';
 import { formatInputValue, parseNumber } from '../lib/format';
@@ -20,6 +20,7 @@ function emptyForm(): FormState {
     installments: '',
     rate: '',
     amortization: '',
+    frequency: 'once',
     commissionPreset: 'none',
     customCommission: '',
   };
@@ -36,13 +37,15 @@ function storageKey(locale: Locale): string {
 }
 
 const COMMISSION_PRESET_VALUES: readonly string[] = ['none', 'variable', 'fixed', 'custom'];
+const FREQUENCY_VALUES: readonly string[] = ['once', 'yearly', 'biennial'];
 
 /**
- * Shape-check a value read back from localStorage: all six FormState keys must
- * be strings and commissionPreset one of the known presets. Anything else
- * (older versions, manual edits, other apps) is ignored rather than trusted.
+ * Shape-check a value read back from localStorage. The six original FormState
+ * fields must be strings and commissionPreset a known preset. `frequency` was
+ * added later, so it is NOT required here (v1 entries written before this feature
+ * lack it) — the restore step defaults it. Anything else is ignored.
  */
-function isStoredForm(value: unknown): value is FormState {
+function isStoredForm(value: unknown): value is Omit<FormState, 'frequency'> {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
@@ -113,6 +116,7 @@ function parseForm(form: FormState, locale: Locale): Parsed {
           installments: raw.installments!,
           annualRatePct: raw.annualRatePct!,
           amortization: raw.amortization!,
+          frequency: form.frequency,
         }
       : null,
     errors,
@@ -149,6 +153,7 @@ export default function Calculator({ locale, dict }: { locale: Locale; dict: Dic
           installments: debounced.installments,
           rate: debounced.rate,
           amortization: debounced.amortization,
+          frequency: debounced.frequency,
           commissionPreset: debounced.commissionPreset,
           customCommission: debounced.customCommission,
         }),
@@ -172,11 +177,20 @@ export default function Calculator({ locale, dict }: { locale: Locale; dict: Dic
           // ('194616,84' -> grouped) and legacy entries are canonicalized
           // ('2.65' -> '2,65' on pt). Restored text is programmatic — no
           // caret concerns. Blank/unparseable strings pass through unchanged.
+          // frequency is absent in v1 entries written before this field existed;
+          // the cast lets us read it without widening isStoredForm's return type.
+          // Validated against FREQUENCY_VALUES the same way commissionPreset is.
+          const storedFreq = (stored as { frequency?: unknown }).frequency;
+          const frequency: Frequency =
+            typeof storedFreq === 'string' && FREQUENCY_VALUES.includes(storedFreq)
+              ? (storedFreq as Frequency)
+              : 'once';
           const restored: FormState = {
             capital: formatInputValue(stored.capital, locale),
             installments: formatInputValue(stored.installments, locale),
             rate: formatInputValue(stored.rate, locale),
             amortization: formatInputValue(stored.amortization, locale),
+            frequency,
             commissionPreset: stored.commissionPreset,
             customCommission: formatInputValue(stored.customCommission, locale),
           };
