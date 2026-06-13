@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, type Frequency, frequencyInterval, validate, buildSchedule, buildSchedules, repaymentCost, sumRepaymentCost, computeSavings } from './amortizacao';
+import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, frequencyInterval, validate, buildSchedule, buildSchedules, repaymentCost, sumRepaymentCost, computeSavings } from './amortizacao';
 
 describe('roundHalfEven (V9)', () => {
   it('rounds 2dp half-to-even', () => {
