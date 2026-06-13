@@ -284,8 +284,10 @@ function buildAmortizedSchedule(
       }
       if (strategy === 'reduceInstallment') {
         const remainingTerm = n - (month - 1);
-        // Past the original term (lumps left a residual): pay it off in one step
-        // (principal + one month's interest) rather than recomputing over <= 0 months.
+        // Defensive: for validated inputs the loan is always rescheduled to finish
+        // by ~month n, so remainingTerm > 0 here. Should a residual ever outlast the
+        // term, pay it off in one step (principal + one month's interest) rather than
+        // calling pmt with <= 0 months (which returns 0 and would stall the loop).
         payment = remainingTerm > 0 ? pmt(balance, i, remainingTerm) : balance * (1 + i);
       }
     }

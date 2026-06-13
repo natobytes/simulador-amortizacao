@@ -327,6 +327,17 @@ describe('buildSchedules — recurring frequency', () => {
     expect(scenario.amortized).toBe(150000);
     expect(scenario.amortizations).toEqual([150000]);
   });
+
+  it('a yearly plan that pays off before the second event has a single repayment', () => {
+    // Boundary where the banner plan-line (repaymentCount > 1) stays hidden but
+    // the cards still show the real, shortened recurring term.
+    const { scenario } = buildSchedules(
+      { capital: 30000, installments: 24, annualRatePct: 3.5, amortization: 20000, frequency: 'yearly' },
+      'reduceTerm',
+    );
+    expect(scenario.amortizations.length).toBe(1);
+    expect(scenario.months).toBeLessThan(12);
+  });
 });
 
 describe('sumRepaymentCost', () => {
