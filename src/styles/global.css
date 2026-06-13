@@ -472,6 +472,16 @@ main {
   color: var(--mint);
 }
 
+.savings-repayments {
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 6px;
+  background: rgb(246 240 228 / 0.12);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--cream) 88%, var(--pine));
+}
+
 /* .savings-totals (lifetime totals, always visible) shares the breakdown look */
 .savings-breakdown,
 .savings-totals {
@@ -874,6 +884,17 @@ main {
 
 .schedule-table tbody tr:nth-child(even) {
   background: color-mix(in srgb, var(--paper-dim) 45%, transparent);
+}
+
+.schedule-table tbody tr.schedule-row--amortization td {
+  background: color-mix(in srgb, var(--mint) 24%, transparent);
+}
+
+.amortization-note {
+  color: var(--pine);
+  font-weight: 700;
+  font-size: 0.78em;
+  white-space: nowrap;
 }
 
 .schedule-table tbody td {
