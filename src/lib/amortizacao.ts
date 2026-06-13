@@ -37,6 +37,25 @@ export function pmt(principal: number, i: number, months: number): number {
 
 export type Strategy = 'reduceTerm' | 'reduceInstallment';
 
+export type Frequency = 'once' | 'yearly' | 'biennial';
+
+/** Months between repayment events: 0 for `once` (non-recurring), 12 / 24 otherwise. */
+export function frequencyInterval(f: Frequency): number {
+  switch (f) {
+    case 'once':
+      return 0;
+    case 'yearly':
+      return 12;
+    case 'biennial':
+      return 24;
+    default: {
+      // Exhaustiveness guard: a new Frequency variant must extend this switch.
+      const _never: never = f;
+      return _never;
+    }
+  }
+}
+
 export interface SimulationInput {
   /** Capital em dívida (EUR). */
   capital: number;
@@ -44,8 +63,10 @@ export interface SimulationInput {
   installments: number;
   /** TAN = spread + Euribor, in percent (e.g. 3.5). */
   annualRatePct: number;
-  /** Valor a amortizar (EUR). */
+  /** Valor a amortizar (EUR), per repayment event. */
   amortization: number;
+  /** How often the repayment is made. Absent => 'once' (single lump). */
+  frequency?: Frequency;
 }
 
 /** Breakdown of the NEXT single monthly installment (not lifetime totals). */

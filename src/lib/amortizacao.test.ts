@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, validate, buildSchedule, buildSchedules, repaymentCost, computeSavings } from './amortizacao';
+import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, type Frequency, frequencyInterval, validate, buildSchedule, buildSchedules, repaymentCost, computeSavings } from './amortizacao';
 
 describe('roundHalfEven (V9)', () => {
   it('rounds 2dp half-to-even', () => {
@@ -33,6 +33,14 @@ describe('pmt', () => {
   });
   it('supports fractional months (reduce-term recompute)', () => {
     expect(pmt(175000, monthlyRate(4.0), 241.67)).toBeCloseTo(1055.680151, 5);
+  });
+});
+
+describe('frequencyInterval', () => {
+  it('maps frequencies to month intervals', () => {
+    expect(frequencyInterval('once')).toBe(0);
+    expect(frequencyInterval('yearly')).toBe(12);
+    expect(frequencyInterval('biennial')).toBe(24);
   });
 });
 
