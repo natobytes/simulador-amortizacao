@@ -141,6 +141,19 @@ export default function InputForm({ form, errors, dict, locale, onChange }: Prop
           );
         })}
         <div className="field">
+          <label htmlFor="frequency">{dict.form.frequency}</label>
+          <select
+            id="frequency"
+            data-testid="input-frequency"
+            value={form.frequency}
+            onChange={(e) => set({ frequency: e.target.value as Frequency })}
+          >
+            <option value="once">{dict.form.frequencyOptions.once}</option>
+            <option value="yearly">{dict.form.frequencyOptions.yearly}</option>
+            <option value="biennial">{dict.form.frequencyOptions.biennial}</option>
+          </select>
+        </div>
+        <div className="field">
           <label htmlFor="commission">{dict.form.commission}</label>
           <select
             id="commission"
