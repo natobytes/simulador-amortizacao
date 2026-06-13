@@ -178,6 +178,12 @@ export interface ScheduleRow {
   principal: number;
   payment: number;
   balance: number;
+  /**
+   * Extra repayment applied at the start of this month, when > 0 (display marker).
+   * A row with `amortization` set and `payment === 0` is a lump-only payoff row
+   * (the lump cleared the balance), so it contributes nothing to payment totals.
+   */
+  amortization?: number;
 }
 
 export interface Schedule {
@@ -185,15 +191,19 @@ export interface Schedule {
   totalInterest: number;
   totalPaid: number;
   months: number;
+  /** Per-event lump amounts in order (the final one may be capped). Empty when none. */
+  amortizations: number[];
+  /** Total of all lumps = sum(amortizations). */
+  amortized: number;
 }
 
 const MAX_MONTHS = 1200;
 
 export function buildSchedule(startBalance: number, i: number, payment: number): Schedule {
-  if (startBalance <= 0 || payment <= 0) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
+  if (startBalance <= 0 || payment <= 0) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0, amortizations: [], amortized: 0 };
   // Payment must exceed first-month interest or the balance never drains
   // (unreachable from validated input, but buildSchedule is a public export).
-  if (i > 0 && payment <= startBalance * i) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
+  if (i > 0 && payment <= startBalance * i) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0, amortizations: [], amortized: 0 };
   const rows: ScheduleRow[] = [];
   let balance = startBalance;
   let totalInterest = 0;
@@ -213,7 +223,7 @@ export function buildSchedule(startBalance: number, i: number, payment: number):
     totalPaid += paid;
     rows.push({ month, interest, principal, payment: paid, balance: Math.max(0, balance) });
   }
-  return { rows, totalInterest, totalPaid, months: rows.length };
+  return { rows, totalInterest, totalPaid, months: rows.length, amortizations: [], amortized: 0 };
 }
 
 export interface SchedulePair {
@@ -221,20 +231,93 @@ export interface SchedulePair {
   scenario: Schedule;
 }
 
+/**
+ * Scenario schedule supporting one or more partial repayments.
+ *
+ * A lump of `amortization` (capped at the remaining balance) is applied at the
+ * START of months 1, 1+interval, 1+2*interval, ... When `interval` is 0 only the
+ * month-1 lump fires (the single-lump case). Applying the first lump at month 1
+ * reproduces buildSchedule(capital - amortization, i, payment) exactly, so the
+ * 'once' path stays byte-identical to the previous engine.
+ *
+ * reduceTerm: the installment is fixed at pmt(capital, i, n); lumps shorten the term.
+ * reduceInstallment: after each lump the installment is recomputed as
+ *   pmt(balance, i, n - monthsElapsed) and steps down; the term stays ~n.
+ */
+function buildAmortizedSchedule(
+  capital: number,
+  i: number,
+  n: number,
+  strategy: Strategy,
+  amortization: number,
+  interval: number,
+): Schedule {
+  const empty: Schedule = { rows: [], totalInterest: 0, totalPaid: 0, months: 0, amortizations: [], amortized: 0 };
+  if (capital <= 0 || amortization <= 0 || n <= 0) return empty;
+
+  const rows: ScheduleRow[] = [];
+  const amortizations: number[] = [];
+  let balance = capital;
+  let payment = pmt(capital, i, n); // reduceTerm uses this throughout; reduceInstallment recomputes
+  let totalInterest = 0;
+  let totalPaid = 0;
+  let amortized = 0;
+  let month = 0;
+
+  while (balance > 0.005 && month < MAX_MONTHS) {
+    month += 1;
+    const isEvent = month === 1 || (interval > 0 && (month - 1) % interval === 0);
+    let lump = 0;
+    if (isEvent) {
+      lump = Math.min(amortization, balance);
+      balance -= lump;
+      amortized += lump;
+      amortizations.push(lump);
+      if (balance <= 0.005) {
+        // The lump itself cleared the loan. Record a final payoff row only when
+        // installments preceded it (a mid-stream payoff); a month-1 clear leaves
+        // an empty schedule, matching the previous full-payoff behaviour (months 0).
+        if (rows.length > 0) {
+          rows.push({ month, interest: 0, principal: 0, payment: 0, balance: 0, amortization: lump });
+        }
+        break;
+      }
+      if (strategy === 'reduceInstallment') {
+        const remainingTerm = n - (month - 1);
+        // Past the original term (lumps left a residual): pay it off in one step
+        // (principal + one month's interest) rather than recomputing over <= 0 months.
+        payment = remainingTerm > 0 ? pmt(balance, i, remainingTerm) : balance * (1 + i);
+      }
+    }
+    const interest = balance * i;
+    let principal = payment - interest;
+    let paid = payment;
+    if (principal >= balance - 0.005 || month === MAX_MONTHS) {
+      principal = balance; // final installment clears the residual exactly
+      paid = balance + interest;
+    }
+    balance -= principal;
+    totalInterest += interest;
+    totalPaid += paid;
+    rows.push({
+      month,
+      interest,
+      principal,
+      payment: paid,
+      balance: Math.max(0, balance),
+      ...(lump > 0 ? { amortization: lump } : {}),
+    });
+  }
+  return { rows, totalInterest, totalPaid, months: rows.length, amortizations, amortized };
+}
+
 /** Precondition: `input` must have passed `validate()` with an empty error map; behaviour is undefined for invalid inputs. */
 export function buildSchedules(input: SimulationInput, strategy: Strategy): SchedulePair {
   const i = monthlyRate(input.annualRatePct);
   const pmtOld = pmt(input.capital, i, input.installments);
   const baseline = buildSchedule(input.capital, i, pmtOld);
-  const Bn = input.capital - input.amortization;
-  let scenario: Schedule;
-  if (Bn <= 0) {
-    scenario = { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
-  } else if (strategy === 'reduceTerm') {
-    scenario = buildSchedule(Bn, i, pmtOld);
-  } else {
-    scenario = buildSchedule(Bn, i, pmt(Bn, i, input.installments));
-  }
+  const interval = frequencyInterval(input.frequency ?? 'once');
+  const scenario = buildAmortizedSchedule(input.capital, i, input.installments, strategy, input.amortization, interval);
   return { baseline, scenario };
 }
 
