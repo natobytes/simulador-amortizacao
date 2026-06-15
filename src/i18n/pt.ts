@@ -27,6 +27,12 @@ export const pt: Dict = {
       custom: 'Outra…',
     },
     customRate: 'Comissão personalizada (%)',
+    frequency: 'Frequência da amortização',
+    frequencyOptions: {
+      once: 'Uma vez',
+      yearly: 'Anual',
+      biennial: 'A cada 2 anos',
+    },
     fillPrompt: 'Preenche os campos acima para veres a simulação.',
     errors: {
       required: 'Campo obrigatório',
@@ -49,6 +55,7 @@ export const pt: Dict = {
   },
   cards: {
     caption: 'Valores da próxima prestação mensal.',
+    captionRecurring: 'Valores da próxima prestação, após a primeira amortização.',
     current: 'Valores Atuais',
     updated: 'Novos Valores',
     diff: 'Diferença',
@@ -62,6 +69,7 @@ export const pt: Dict = {
   banner: {
     saves: 'Poupas {amount} em juros',
     fullPayoff: 'Liquidação total do crédito — deixas de pagar juros.',
+    repayments: '{count} amortizações de {amount} (total {total})',
     grossInterest: 'Juros poupados',
     commission: 'Comissão',
     stampDuty: 'Imposto do Selo (4%)',
@@ -85,6 +93,7 @@ export const pt: Dict = {
     payment: 'Prestação',
     balance: 'Capital em Dívida',
     total: 'Total',
+    amortizationNote: '+{amount} amortizado',
   },
   faq: {
     title: 'Perguntas Frequentes',

@@ -27,6 +27,12 @@ export const en: Dict = {
       custom: 'Custom…',
     },
     customRate: 'Custom fee (%)',
+    frequency: 'Repayment frequency',
+    frequencyOptions: {
+      once: 'Once',
+      yearly: 'Yearly',
+      biennial: 'Every 2 years',
+    },
     fillPrompt: 'Fill in the fields above to see your simulation.',
     errors: {
       required: 'This field is required',
@@ -49,6 +55,7 @@ export const en: Dict = {
   },
   cards: {
     caption: 'Breakdown of the next monthly installment.',
+    captionRecurring: 'Next installment values, after the first repayment.',
     current: 'Current Values',
     updated: 'New Values',
     diff: 'Difference',
@@ -62,6 +69,7 @@ export const en: Dict = {
   banner: {
     saves: 'You save {amount} in interest',
     fullPayoff: 'Full payoff — you stop paying interest entirely.',
+    repayments: '{count} repayments of {amount} ({total} total)',
     grossInterest: 'Interest saved',
     commission: 'Early repayment fee',
     stampDuty: 'Stamp duty (4%)',
@@ -85,6 +93,7 @@ export const en: Dict = {
     payment: 'Payment',
     balance: 'Balance',
     total: 'Total',
+    amortizationNote: '+{amount} repaid',
   },
   faq: {
     title: 'Frequently Asked Questions',

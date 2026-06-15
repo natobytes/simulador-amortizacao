@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, validate, buildSchedule, buildSchedules, repaymentCost, computeSavings } from './amortizacao';
+import { roundHalfEven, round2, monthlyRate, pmt, simulate, type SimulationInput, frequencyInterval, validate, buildSchedule, buildSchedules, repaymentCost, sumRepaymentCost, computeSavings } from './amortizacao';
 
 describe('roundHalfEven (V9)', () => {
   it('rounds 2dp half-to-even', () => {
@@ -33,6 +33,14 @@ describe('pmt', () => {
   });
   it('supports fractional months (reduce-term recompute)', () => {
     expect(pmt(175000, monthlyRate(4.0), 241.67)).toBeCloseTo(1055.680151, 5);
+  });
+});
+
+describe('frequencyInterval', () => {
+  it('maps frequencies to month intervals', () => {
+    expect(frequencyInterval('once')).toBe(0);
+    expect(frequencyInterval('yearly')).toBe(12);
+    expect(frequencyInterval('biennial')).toBe(24);
   });
 });
 
@@ -259,5 +267,108 @@ describe('computeSavings', () => {
     const s = computeSavings(baseline, scenario, V1.amortization, 0);
     expect(s.cost.total).toBe(0);
     expect(s.totalAfter).toBe(round2(scenario.totalPaid + V1.amortization));
+  });
+});
+
+describe('buildSchedules — recurring frequency', () => {
+  it("once-frequency reduceTerm equals the single-lump schedule", () => {
+    const i = monthlyRate(V1.annualRatePct);
+    const ref = buildSchedule(V1.capital - V1.amortization, i, pmt(V1.capital, i, V1.installments));
+    const { scenario } = buildSchedules({ ...V1, frequency: 'once' }, 'reduceTerm');
+    expect(scenario.months).toBe(ref.months);
+    expect(scenario.totalInterest).toBeCloseTo(ref.totalInterest, 6);
+    expect(scenario.totalPaid).toBeCloseTo(ref.totalPaid, 6);
+    expect(scenario.rows[0]!.payment).toBeCloseTo(ref.rows[0]!.payment, 6);
+    expect(scenario.amortizations).toEqual([V1.amortization]);
+    expect(scenario.amortized).toBe(V1.amortization);
+  });
+
+  it('once-frequency reduceInstallment equals the single-lump schedule', () => {
+    const i = monthlyRate(V1.annualRatePct);
+    const Bn = V1.capital - V1.amortization;
+    const ref = buildSchedule(Bn, i, pmt(Bn, i, V1.installments));
+    const { scenario } = buildSchedules({ ...V1, frequency: 'once' }, 'reduceInstallment');
+    expect(scenario.months).toBe(ref.months);
+    expect(scenario.totalInterest).toBeCloseTo(ref.totalInterest, 6);
+    expect(scenario.totalPaid).toBeCloseTo(ref.totalPaid, 6);
+    expect(scenario.rows[0]!.payment).toBeCloseTo(ref.rows[0]!.payment, 6);
+  });
+
+  it('yearly reduceTerm shortens the term and amortizes every 12 months', () => {
+    const single = buildSchedules({ ...V1, frequency: 'once' }, 'reduceTerm').scenario;
+    const yearly = buildSchedules({ ...V1, frequency: 'yearly' }, 'reduceTerm').scenario;
+    expect(yearly.months).toBeLessThan(single.months);
+    expect(yearly.totalInterest).toBeLessThan(single.totalInterest);
+    expect(yearly.amortizations.length).toBeGreaterThan(1);
+    const eventMonths = yearly.rows.filter((r) => r.amortization).map((r) => r.month);
+    expect(eventMonths.slice(0, 3)).toEqual([1, 13, 25]);
+    expect(yearly.amortized).toBeCloseTo(yearly.amortizations.reduce((a, b) => a + b, 0), 6);
+  });
+
+  it('yearly reduceInstallment keeps a long term and steps the installment down', () => {
+    const yearlyInst = buildSchedules({ ...V1, frequency: 'yearly' }, 'reduceInstallment').scenario;
+    const yearlyTerm = buildSchedules({ ...V1, frequency: 'yearly' }, 'reduceTerm').scenario;
+    expect(yearlyInst.months).toBeLessThanOrEqual(360);
+    expect(yearlyInst.months).toBeGreaterThan(yearlyTerm.months);
+    const p1 = yearlyInst.rows[0]!.payment;
+    const p13 = yearlyInst.rows.find((r) => r.month === 13)!.payment;
+    expect(p13).toBeLessThan(p1);
+  });
+
+  it('biennial places events every 24 months (1, 25, 49)', () => {
+    const s = buildSchedules({ ...V1, frequency: 'biennial' }, 'reduceTerm').scenario;
+    const eventMonths = s.rows.filter((r) => r.amortization).map((r) => r.month);
+    expect(eventMonths.slice(0, 3)).toEqual([1, 25, 49]);
+  });
+
+  it('a first lump that clears the loan still yields an empty schedule (months 0)', () => {
+    const { scenario } = buildSchedules({ ...V1, amortization: 150000, frequency: 'yearly' }, 'reduceTerm');
+    expect(scenario.months).toBe(0);
+    expect(scenario.amortized).toBe(150000);
+    expect(scenario.amortizations).toEqual([150000]);
+  });
+
+  it('a yearly plan that pays off before the second event has a single repayment', () => {
+    // Boundary where the banner plan-line (repaymentCount > 1) stays hidden but
+    // the cards still show the real, shortened recurring term.
+    const { scenario } = buildSchedules(
+      { capital: 30000, installments: 24, annualRatePct: 3.5, amortization: 20000, frequency: 'yearly' },
+      'reduceTerm',
+    );
+    expect(scenario.amortizations.length).toBe(1);
+    expect(scenario.months).toBeLessThan(12);
+  });
+});
+
+describe('sumRepaymentCost', () => {
+  it('sums per-event commission and stamp duty', () => {
+    expect(sumRepaymentCost([10000, 10000], 0.5)).toEqual({ commission: 100, stampDuty: 4, total: 104 });
+  });
+  it('matches single repaymentCost for one event', () => {
+    expect(sumRepaymentCost([10000], 0.5)).toEqual(repaymentCost(10000, 0.5));
+  });
+  it('zero commission yields no cost', () => {
+    expect(sumRepaymentCost([10000, 5000], 0)).toEqual({ commission: 0, stampDuty: 0, total: 0 });
+  });
+});
+
+describe('computeSavings — recurring', () => {
+  it('sums commission across every repayment event', () => {
+    const { baseline, scenario } = buildSchedules({ ...V1, frequency: 'yearly' }, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, V1.amortization, 0.5);
+    expect(scenario.amortizations.length).toBeGreaterThan(1);
+    expect(s.cost.total).toBeGreaterThan(52); // more than a single 10 000 € event (52 €)
+  });
+  it('totalAfter = scenario installments + total amortized + total cost', () => {
+    const { baseline, scenario } = buildSchedules({ ...V1, frequency: 'yearly' }, 'reduceTerm');
+    const s = computeSavings(baseline, scenario, V1.amortization, 0.5);
+    expect(s.totalAfter).toBe(round2(scenario.totalPaid + scenario.amortized + s.cost.total));
+  });
+  it('recurring saves more interest than a single lump', () => {
+    const oncePair = buildSchedules({ ...V1, frequency: 'once' }, 'reduceTerm');
+    const onceSaved = computeSavings(oncePair.baseline, oncePair.scenario, V1.amortization, 0.5).interestSaved;
+    const yearlyPair = buildSchedules({ ...V1, frequency: 'yearly' }, 'reduceTerm');
+    const yearlySaved = computeSavings(yearlyPair.baseline, yearlyPair.scenario, V1.amortization, 0.5).interestSaved;
+    expect(yearlySaved).toBeGreaterThan(onceSaved);
   });
 });

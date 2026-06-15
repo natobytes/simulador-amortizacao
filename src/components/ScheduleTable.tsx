@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import type { Dict } from '../i18n';
+import { tpl } from '../i18n';
 import type { Schedule } from '../lib/amortizacao';
 import type { Locale } from '../lib/format';
 import { formatEuro } from '../lib/format';
@@ -39,12 +40,20 @@ export default function ScheduleTable({ schedule, dict, locale }: Props) {
             </thead>
             <tbody>
               {schedule.rows.map((r) => (
-                <tr key={r.month}>
+                <tr key={r.month} className={r.amortization ? 'schedule-row--amortization' : undefined}>
                   <td>{r.month}</td>
                   <td>{formatEuro(r.payment, locale)}</td>
                   <td>{formatEuro(r.interest, locale)}</td>
                   <td>{formatEuro(r.principal, locale)}</td>
-                  <td>{formatEuro(r.balance, locale)}</td>
+                  <td>
+                    {formatEuro(r.balance, locale)}
+                    {r.amortization ? (
+                      <small className="amortization-note">
+                        {' '}
+                        {tpl(dict.table.amortizationNote, { amount: formatEuro(r.amortization, locale) })}
+                      </small>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -37,6 +37,25 @@ export function pmt(principal: number, i: number, months: number): number {
 
 export type Strategy = 'reduceTerm' | 'reduceInstallment';
 
+export type Frequency = 'once' | 'yearly' | 'biennial';
+
+/** Months between repayment events: 0 for `once` (non-recurring), 12 / 24 otherwise. */
+export function frequencyInterval(f: Frequency): number {
+  switch (f) {
+    case 'once':
+      return 0;
+    case 'yearly':
+      return 12;
+    case 'biennial':
+      return 24;
+    default: {
+      // Exhaustiveness guard: a new Frequency variant must extend this switch.
+      const _never: never = f;
+      return _never;
+    }
+  }
+}
+
 export interface SimulationInput {
   /** Capital em dívida (EUR). */
   capital: number;
@@ -44,8 +63,10 @@ export interface SimulationInput {
   installments: number;
   /** TAN = spread + Euribor, in percent (e.g. 3.5). */
   annualRatePct: number;
-  /** Valor a amortizar (EUR). */
+  /** Valor a amortizar (EUR), per repayment event. */
   amortization: number;
+  /** How often the repayment is made. Absent => 'once' (single lump). */
+  frequency?: Frequency;
 }
 
 /** Breakdown of the NEXT single monthly installment (not lifetime totals). */
@@ -157,6 +178,12 @@ export interface ScheduleRow {
   principal: number;
   payment: number;
   balance: number;
+  /**
+   * Extra repayment applied at the start of this month, when > 0 (display marker).
+   * A row with `amortization` set and `payment === 0` is a lump-only payoff row
+   * (the lump cleared the balance), so it contributes nothing to payment totals.
+   */
+  amortization?: number;
 }
 
 export interface Schedule {
@@ -164,15 +191,19 @@ export interface Schedule {
   totalInterest: number;
   totalPaid: number;
   months: number;
+  /** Per-event lump amounts in order (the final one may be capped). Empty when none. */
+  amortizations: number[];
+  /** Total of all lumps = sum(amortizations). */
+  amortized: number;
 }
 
 const MAX_MONTHS = 1200;
 
 export function buildSchedule(startBalance: number, i: number, payment: number): Schedule {
-  if (startBalance <= 0 || payment <= 0) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
+  if (startBalance <= 0 || payment <= 0) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0, amortizations: [], amortized: 0 };
   // Payment must exceed first-month interest or the balance never drains
   // (unreachable from validated input, but buildSchedule is a public export).
-  if (i > 0 && payment <= startBalance * i) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
+  if (i > 0 && payment <= startBalance * i) return { rows: [], totalInterest: 0, totalPaid: 0, months: 0, amortizations: [], amortized: 0 };
   const rows: ScheduleRow[] = [];
   let balance = startBalance;
   let totalInterest = 0;
@@ -192,7 +223,7 @@ export function buildSchedule(startBalance: number, i: number, payment: number):
     totalPaid += paid;
     rows.push({ month, interest, principal, payment: paid, balance: Math.max(0, balance) });
   }
-  return { rows, totalInterest, totalPaid, months: rows.length };
+  return { rows, totalInterest, totalPaid, months: rows.length, amortizations: [], amortized: 0 };
 }
 
 export interface SchedulePair {
@@ -200,20 +231,95 @@ export interface SchedulePair {
   scenario: Schedule;
 }
 
+/**
+ * Scenario schedule supporting one or more partial repayments.
+ *
+ * A lump of `amortization` (capped at the remaining balance) is applied at the
+ * START of months 1, 1+interval, 1+2*interval, ... When `interval` is 0 only the
+ * month-1 lump fires (the single-lump case). Applying the first lump at month 1
+ * reproduces buildSchedule(capital - amortization, i, payment) exactly, so the
+ * 'once' path stays byte-identical to the previous engine.
+ *
+ * reduceTerm: the installment is fixed at pmt(capital, i, n); lumps shorten the term.
+ * reduceInstallment: after each lump the installment is recomputed as
+ *   pmt(balance, i, n - monthsElapsed) and steps down; the term stays ~n.
+ */
+function buildAmortizedSchedule(
+  capital: number,
+  i: number,
+  n: number,
+  strategy: Strategy,
+  amortization: number,
+  interval: number,
+): Schedule {
+  const empty: Schedule = { rows: [], totalInterest: 0, totalPaid: 0, months: 0, amortizations: [], amortized: 0 };
+  if (capital <= 0 || amortization <= 0 || n <= 0) return empty;
+
+  const rows: ScheduleRow[] = [];
+  const amortizations: number[] = [];
+  let balance = capital;
+  let payment = pmt(capital, i, n); // reduceTerm uses this throughout; reduceInstallment recomputes
+  let totalInterest = 0;
+  let totalPaid = 0;
+  let amortized = 0;
+  let month = 0;
+
+  while (balance > 0.005 && month < MAX_MONTHS) {
+    month += 1;
+    const isEvent = month === 1 || (interval > 0 && (month - 1) % interval === 0);
+    let lump = 0;
+    if (isEvent) {
+      lump = Math.min(amortization, balance);
+      balance -= lump;
+      amortized += lump;
+      amortizations.push(lump);
+      if (balance <= 0.005) {
+        // The lump itself cleared the loan. Record a final payoff row only when
+        // installments preceded it (a mid-stream payoff); a month-1 clear leaves
+        // an empty schedule, matching the previous full-payoff behaviour (months 0).
+        if (rows.length > 0) {
+          rows.push({ month, interest: 0, principal: 0, payment: 0, balance: 0, amortization: lump });
+        }
+        break;
+      }
+      if (strategy === 'reduceInstallment') {
+        const remainingTerm = n - (month - 1);
+        // Defensive: for validated inputs the loan is always rescheduled to finish
+        // by ~month n, so remainingTerm > 0 here. Should a residual ever outlast the
+        // term, pay it off in one step (principal + one month's interest) rather than
+        // calling pmt with <= 0 months (which returns 0 and would stall the loop).
+        payment = remainingTerm > 0 ? pmt(balance, i, remainingTerm) : balance * (1 + i);
+      }
+    }
+    const interest = balance * i;
+    let principal = payment - interest;
+    let paid = payment;
+    if (principal >= balance - 0.005 || month === MAX_MONTHS) {
+      principal = balance; // final installment clears the residual exactly
+      paid = balance + interest;
+    }
+    balance -= principal;
+    totalInterest += interest;
+    totalPaid += paid;
+    rows.push({
+      month,
+      interest,
+      principal,
+      payment: paid,
+      balance: Math.max(0, balance),
+      ...(lump > 0 ? { amortization: lump } : {}),
+    });
+  }
+  return { rows, totalInterest, totalPaid, months: rows.length, amortizations, amortized };
+}
+
 /** Precondition: `input` must have passed `validate()` with an empty error map; behaviour is undefined for invalid inputs. */
 export function buildSchedules(input: SimulationInput, strategy: Strategy): SchedulePair {
   const i = monthlyRate(input.annualRatePct);
   const pmtOld = pmt(input.capital, i, input.installments);
   const baseline = buildSchedule(input.capital, i, pmtOld);
-  const Bn = input.capital - input.amortization;
-  let scenario: Schedule;
-  if (Bn <= 0) {
-    scenario = { rows: [], totalInterest: 0, totalPaid: 0, months: 0 };
-  } else if (strategy === 'reduceTerm') {
-    scenario = buildSchedule(Bn, i, pmtOld);
-  } else {
-    scenario = buildSchedule(Bn, i, pmt(Bn, i, input.installments));
-  }
+  const interval = frequencyInterval(input.frequency ?? 'once');
+  const scenario = buildAmortizedSchedule(input.capital, i, input.installments, strategy, input.amortization, interval);
   return { baseline, scenario };
 }
 
@@ -227,6 +333,22 @@ export interface CostBreakdown {
 export function repaymentCost(amortization: number, commissionRatePct: number): CostBreakdown {
   const commission = round2(amortization * (commissionRatePct / 100));
   const stampDuty = commission > 0 ? round2(commission * 0.04) : 0;
+  return { commission, stampDuty, total: round2(commission + stampDuty) };
+}
+
+/**
+ * Total early-repayment cost across several events. Each event is costed and
+ * rounded independently (the bank bills each separately) and the running totals
+ * are accumulated with round2, so the result matches per-event billing exactly.
+ */
+export function sumRepaymentCost(amounts: number[], commissionRatePct: number): CostBreakdown {
+  let commission = 0;
+  let stampDuty = 0;
+  for (const amount of amounts) {
+    const c = repaymentCost(amount, commissionRatePct);
+    commission = round2(commission + c.commission);
+    stampDuty = round2(stampDuty + c.stampDuty);
+  }
   return { commission, stampDuty, total: round2(commission + stampDuty) };
 }
 
@@ -247,10 +369,17 @@ export function computeSavings(
   commissionRatePct: number,
 ): SavingsSummary {
   const interestSaved = round2(baseline.totalInterest - scenario.totalInterest);
-  const cost = repaymentCost(amortization, commissionRatePct);
+  // A scenario from buildSchedules always carries its actual per-event lump
+  // amounts (final one capped), so this is the live path. The `amortization`
+  // arg is only a defensive fallback for a caller that hands in a bare,
+  // non-amortized schedule (e.g. directly from buildSchedule).
+  const hasEvents = scenario.amortizations.length > 0;
+  const events = hasEvents ? scenario.amortizations : [amortization];
+  const amortizedTotal = hasEvents ? scenario.amortized : amortization;
+  const cost = sumRepaymentCost(events, commissionRatePct);
   // Both totals fully repay the capital, so totalBefore − totalAfter ≈ netSavings
   // (within a cent or two of independent-rounding artifacts, which are correct).
   const totalBefore = round2(baseline.totalPaid);
-  const totalAfter = round2(scenario.totalPaid + amortization + cost.total);
+  const totalAfter = round2(scenario.totalPaid + amortizedTotal + cost.total);
   return { interestSaved, cost, netSavings: round2(interestSaved - cost.total), totalBefore, totalAfter };
 }

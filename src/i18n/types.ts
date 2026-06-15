@@ -16,6 +16,8 @@ export interface Dict {
     commissionHelp: string;
     commissionOptions: { none: string; variable: string; fixed: string; custom: string };
     customRate: string;
+    frequency: string;
+    frequencyOptions: { once: string; yearly: string; biennial: string };
     fillPrompt: string;
     errors: Record<'required' | 'positive' | 'integer' | 'negative' | 'exceedsCapital' | 'invalid', string>;
   };
@@ -25,6 +27,7 @@ export interface Dict {
   };
   cards: {
     caption: string;
+    captionRecurring: string;
     current: string;
     updated: string;
     diff: string;
@@ -38,6 +41,7 @@ export interface Dict {
   banner: {
     saves: string;
     fullPayoff: string;
+    repayments: string;
     grossInterest: string;
     commission: string;
     stampDuty: string;
@@ -47,7 +51,7 @@ export interface Dict {
     totalAfterNote: string;
   };
   chart: { title: string; baseline: string; scenario: string; years: string };
-  table: { show: string; hide: string; month: string; interest: string; principal: string; payment: string; balance: string; total: string };
+  table: { show: string; hide: string; month: string; interest: string; principal: string; payment: string; balance: string; total: string; amortizationNote: string };
   faq: { title: string; items: FaqItem[] };
   footer: { disclaimer: string; rulesAsOf: string; byLine: string };
   lang: { label: string; pt: string; en: string };

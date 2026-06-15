@@ -5,13 +5,14 @@ import { formatEuro, formatInt, formatSignedEuro, formatSignedInt, formatYearsMo
 
 interface Props {
   result: ScenarioResult;
+  caption: string;
   dict: Dict;
   locale: Locale;
 }
 
 type RowKey = 'interest' | 'principal' | 'installment' | 'remaining';
 
-export default function SummaryCards({ result, dict, locale }: Props) {
+export default function SummaryCards({ result, caption, dict, locale }: Props) {
   const rows: { key: RowKey; label: string; note?: string }[] = [
     { key: 'interest', label: dict.cards.interest },
     { key: 'principal', label: dict.cards.principal },
@@ -32,7 +33,7 @@ export default function SummaryCards({ result, dict, locale }: Props) {
 
   return (
     <div className="summary">
-      <p className="summary-caption">{dict.cards.caption}</p>
+      <p className="summary-caption">{caption}</p>
       <div className="summary-grid">
         {columns.map((col) => (
           <section className={`summary-col summary-col--${col.key}`} key={col.key}>
